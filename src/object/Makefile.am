@@ -1,4 +1,4 @@
-lib_LIBRARIES = libobject.a
+noinst_LIBRARIES = libobject.a
 libobject_a_SOURCES = Object.c \
 						Class.c \
 						String.c \

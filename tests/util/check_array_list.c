@@ -203,6 +203,7 @@ main (void)
 TCase *
 array_list_tcase ()
 {
+  initArrayList();
   TCase *tc_core = tcase_create ("ArrayList");
 
   tcase_add_test(tc_core, test_array_list_create);

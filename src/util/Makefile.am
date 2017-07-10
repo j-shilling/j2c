@@ -1,7 +1,6 @@
-
 AM_CFLAGS = -I${srcdir}/../object
 
-lib_LIBRARIES = libutil.a
+noinst_LIBRARIES = libutil.a
 libutil_a_SOURCES = ArrayList.c \
 					Collection.c \
 					Iterator.c \
