@@ -1,30 +1,30 @@
 #ifndef __CLASSFILE_H__
 #define __CLASSFILE_H__
 
-#include <stdint.h>
+#include <glib.h>
+
+typedef enum
+{
+  INVALID_ARGUMENT,
+  MEMORY_ALLOC_ERROR,
+  FILE_PARSE_ERROR,
+  UNKNOWN_ERROR
+} ClassFileError;
 
 /*
  * CONSTANT POOL INFO STRUCTS
  */
 typedef struct
 {
-
-  uint8_t tag;
-  uint8_t *info;
-
-} CPInfo;
-
-typedef struct
-{
-  uint8_t tag;
-  uint16_t name_index;
+  guint8 tag;
+  guint16 name_index;
 } ClassInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint16_t class_index;
-  uint16_t name_and_type_index;
+  guint8 tag;
+  guint16 class_index;
+  guint16 name_and_type_index;
 } FieldrefInfo;
 
 typedef FieldrefInfo MethodrefInfo;
@@ -32,59 +32,59 @@ typedef FieldrefInfo InterfaceMethodrefInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint16_t string_index;
+  guint8 tag;
+  guint16 string_index;
 } StringInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint32_t bytes;
+  guint8 tag;
+  guint32 bytes;
 } IntegerInfo;
 
 typedef IntegerInfo FloatInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint32_t high_bytes;
-  uint32_t low_bytes;
+  guint8 tag;
+  guint32 high_bytes;
+  guint32 low_bytes;
 } LongInfo;
 
 typedef LongInfo DoubleInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint16_t name_index;
-  uint16_t descriptor_index;
+  guint8 tag;
+  guint16 name_index;
+  guint16 descriptor_index;
 } NameAndTypeInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint16_t length;
-  uint8_t *bytes;
+  guint8 tag;
+  guint16 length;
+  guint8 *bytes;
 } Utf8Info;
 
 typedef struct
 {
-  uint8_t tag;
-  uint8_t reference_kind;
-  uint16_t reference_index;
+  guint8 tag;
+  guint8 reference_kind;
+  guint16 reference_index;
 } MethodHandleInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint16_t descriptor_index;
+  guint8 tag;
+  guint16 descriptor_index;
 } MethodTypeInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint16_t bootstrap_method_attr_index;
-  uint16_t name_and_type_index;
+  guint8 tag;
+  guint16 bootstrap_method_attr_index;
+  guint16 name_and_type_index;
 } InvokeDynamicInfo;
 
 /*
@@ -92,43 +92,36 @@ typedef struct
  */
 typedef struct
 {
-  uint16_t attribute_name_index;
-  uint32_t attribute_length;
-  uint8_t *info;
-} AttributeInfo;
-
-typedef struct
-{
-  uint16_t attribute_name_index;
-  uint32_t attribute_length;
-  uint16_t constantvalue_index;
+  guint16 attribute_name_index;
+  guint32 attribute_length;
+  guint16 constantvalue_index;
 } ConstantValueAttribute;
 
 typedef struct
 {
-  uint16_t start_pc;
-  uint16_t end_pc;
-  uint16_t handler_pc;
-  uint16_t catch_type;
+  guint16 start_pc;
+  guint16 end_pc;
+  guint16 handler_pc;
+  guint16 catch_type;
 } ExceptionTable;
 
 typedef struct
 {
-  uint16_t attribute_name_index;
-  uint32_t attribute_length;
-  uint16_t max_stack;
-  uint16_t max_locals;
-  uint32_t code_length;
-  uint8_t *code;
-  uint16_t exception_table_length;
+  guint16 attribute_name_index;
+  guint32 attribute_length;
+  guint16 max_stack;
+  guint16 max_locals;
+  guint32 code_length;
+  guint8 *code;
+  guint16 exception_table_length;
   ExceptionTable *exception_table;
-  uint16_t attributes_count;
-  AttributeInfo *attributes;
+  guint16 attributes_count;
+  gpointer*attributes;
 } CodeAttribute;
 
 typedef struct
 {
-  uint8_t tag;
+  guint8 tag;
 } VariableInfoTag;
 
 typedef VariableInfoTag TopVariableInfo;
@@ -142,14 +135,14 @@ typedef VariableInfoTag UninitializedThisVariableInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint16_t cpool_index;
+  guint8 tag;
+  guint16 cpool_index;
 } ObjectVariableInfo;
 
 typedef struct
 {
-  uint8_t tag;
-  uint16_t offset;
+  guint8 tag;
+  guint16 offset;
 } UninitializedVariableInfo;
 
 typedef union
@@ -160,55 +153,55 @@ typedef union
   LongVariableInfo long_variable_info;
   DoubleVariableInfo double_variable_info;
   NullVariableInfo null_variable_info;
-  UnitializedThisVariableInfo unitialized_this_variable_info;
+  UninitializedThisVariableInfo unitialized_this_variable_info;
   ObjectVariableInfo object_variable_info;
   UninitializedVariableInfo uninitialized_variable_info;
 } VerificationTypeInfo;
 
 typedef struct
 {
-  uint8_t frame_type;
+  guint8 frame_type;
 } SameFrame;
 
 typedef struct
 {
-  uint8_t frame_type;
-  VerificationTypeInfo stack[1];
+  guint8 frame_type;
+  VerificationTypeInfo stack;
 } SameLocals1StackItemFrame;
 
 typedef struct
 {
-  uint8_t frame_type;
-  uint16_t offset_delta;
-  VerificationTypeInfo stack[1];
+  guint8 frame_type;
+  guint16 offset_delta;
+  VerificationTypeInfo stack;
 } SameLocals1StackItemFrameExtended;
 
 typedef struct
 {
-  uint8_t frame_type;
-  uint16_t offset_delta;
+  guint8 frame_type;
+  guint16 offset_delta;
 } ChopFrame;
 
 typedef struct
 {
-  uint8_t frame_type;
-  uint16_t offset_delta;
+  guint8 frame_type;
+  guint16 offset_delta;
 } SameFrameExtended;
 
 typedef struct
 {
-  uint8_t frame_type;
-  uint16_t offset_delta;
-  VerifictionTypeInfo *locals;
+  guint8 frame_type;
+  guint16 offset_delta;
+  VerificationTypeInfo *locals;
 } AppendFrame;
 
 typedef struct
 {
-  uint8_t frame_type;
-  uint16_t offset_dela;
-  uint16_t number_of_locals;
+  guint8 frame_type;
+  guint16 offset_delta;
+  guint16 number_of_locals;
   VerificationTypeInfo *locals;
-  uint16_t number_of_stack_items;
+  guint16 number_of_stack_items;
   VerificationTypeInfo *stack;
 } FullFrame;
 
@@ -225,54 +218,54 @@ typedef union
 
 typedef struct
 {
-  uint16_t attriute_name_index;
-  uint32_t attribute_length;
-  uint16_t number_of_entries;
+  guint16 attribute_name_index;
+  guint32 attribute_length;
+  guint16 number_of_entries;
   StackMapFrame *entries;
 } StackMapTableAttribute;
 
 typedef struct
 {
-  uint16_t attribute_name_index;
-  uint32_t attribute_length;
-  uint16_t number_of_exceptions;
-  uint16  *exception_index_table;
+  guint16 attribute_name_index;
+  guint32 attribute_length;
+  guint16 number_of_exceptions;
+  guint16  *exception_index_table;
 } ExceptionsAttribute;
 
 typedef struct
 {
-  uint16_t inner_class_info_index;
-  uint16_t outer_class_info_index;
-  uint16_t inner_name_index;
-  uint16_t inner_class_access_flags;
+  guint16 inner_class_info_index;
+  guint16 outer_class_info_index;
+  guint16 inner_name_index;
+  guint16 inner_class_access_flags;
 } InnerClassInfo;
 
 typedef struct
 {
-  uint16_t attribute_name_index;
-  uint32_t attribute_length;
-  uint16_t number_of_classes;
+  guint16 attribute_name_index;
+  guint32 attribute_length;
+  guint16 number_of_classes;
   InnerClassInfo *classes;
 } InnerClassesAttribute;
 
 typedef struct
 {
-  uint16_t attribute_name_index;
-  uint32_t attribute_length;
+  guint16 attribute_name_index;
+  guint32 attribute_length;
 } SyntheticAttribute;
 
 typedef struct
 {
-  uint16_t attribute_name_index;
-  uint32_t attribute_length;
-  uint16_t signature_index;
+  guint16 attribute_name_index;
+  guint32 attribute_length;
+  guint16 signature_index;
 } SignatureAttribute;
  
 typedef struct
 {
-  uint16_t attribute_name_index;
-  uint32_t attribute_length;
-  uint16_t sourcefile_index;
+  guint16 attribute_name_index;
+  guint32 attribute_length;
+  guint16 sourcefile_index;
 } SourceFileAttribute;
  
 /*
@@ -280,54 +273,56 @@ typedef struct
  */
 typedef struct
 {
-  uint16_t access_flags;
-  uint16_t name_index;
-  uint16_t descriptor_index;
-  uint16_t attributes_count;
-  AttributeInfo *attributes;
+  guint16 access_flags;
+  guint16 name_index;
+  guint16 descriptor_index;
+  guint16 attributes_count;
+  gpointer*attributes;
 } FieldInfo;
 
 typedef struct
 {
-  uint16_t access_flags;
-  uint16_t name_index;
-  uint16_t descriptor_index;
-  uint16_t attributes_count;
-  AttributeInfo *attributes;
+  guint16 access_flags;
+  guint16 name_index;
+  guint16 descriptor_index;
+  guint16 attributes_count;
+  gpointer*attributes;
 } MethodInfo;
 
 typedef struct
 {
 
-  uint32_t magic;
-  uint16_t minor_version;
-  uint16_t major_version;
+  guint32 magic;
+  guint16 minor_version;
+  guint16 major_version;
 
-  uint16_t constant_pool_count;
-  CPInfo *constant_pool;
+  guint16 constant_pool_count;
+  gpointer*constant_pool;
 
-  uint16_t access_flags;
-  uint16_t this_class;
-  uint16_t super_class;
+  guint16 access_flags;
+  guint16 this_class;
+  guint16 super_class;
 
-  uint16_t interfaces_count;
-  uint16_t *interfaces;
+  guint16 interfaces_count;
+  guint16 *interfaces;
 
-  uint16_t fields_count;
+  guint16 fields_count;
   FieldInfo *fields;
 
-  uint16_t methods_count;
+  guint16 methods_count;
   MethodInfo *methods;
 
-  uint16_t attributes_count;
-  AttributeInfo *attributes;
+  guint16 attributes_count;
+  gpointer*attributes;
 
 } ClassFile;
 
 /*
  * CONSTANT VALUES
  */
-static const uint32_t CLASS_FILE_MAGIC_NUMBER = 0xCAFEBABE;
+
+/* Identifies a file as a .class file */
+static const guint32 CLASS_FILE_MAGIC_NUMBER = 0xCAFEBABE;
 
 typedef enum
 {
@@ -366,42 +361,57 @@ typedef enum
   SHORT   = 'S', /* Signed short */
   BOOLEAN = 'Z', /* True or false */
   ARRAY   = '['  /* One array dimension */
-
 } FieldType;
 
 const int VOID = 'V'; /* Void descriptor */
 
-typedef enum
-{
+/* Tag values identify types of structures in the constant pool */
+static const guint8 CONSTANT_Class              =  7;
+static const guint8 CONSTANT_Fieldref           =  9;
+static const guint8 CONSTANT_Methodref          = 10;
+static const guint8 CONSTANT_InterfaceMethodref = 11;
+static const guint8 CONSTANT_String             =  8;
+static const guint8 CONSTANT_Integer            =  3;
+static const guint8 CONSTANT_Float              =  4;
+static const guint8 CONSTANT_Long               =  5;
+static const guint8 CONSTANT_Double             =  6;
+static const guint8 CONSTANT_NameAndType        = 12;
+static const guint8 CONSTANT_Utf8               =  1;
+static const guint8 CONSTANT_MethodHandle       = 15;
+static const guint8 CONSTANT_MethodType         = 16;
+static const guint8 CONSTANT_InvokeDynamic      = 1;
 
-  CONSTANT_Class              =  7,
-  CONSTANT_Fieldref           =  9,
-  CONSTANT_Methodref          = 10,
-  CONSTANT_InterfaceMethodref = 11,
-  CONSTANT_String             =  8,
-  CONSTANT_Integer            =  3,
-  CONSTANT_Float              =  4,
-  CONSTANT_Long               =  5,
-  CONSTANT_Double             =  6,
-  CONSTANT_NameAndType        = 12,
-  CONSTANT_Utf8               =  1,
-  CONSTANT_MethodHandle       = 15,
-  CONSTANT_MethodType         = 16,
-  CONSTANT_InvokeDynamic      = 18
+/* Constant strings identifying types of attribute structures */
+static guint8 const *const ATTRIBUTE_ConstantValue                        = "ConstantValue";
+static guint8 const *const ATTRIBUTE_Code                                 = "Code";
+static guint8 const *const ATTRIBUTE_StackMapTable                        = "StackMapTable";
+static guint8 const *const ATTRIBUTE_Exceptions                           = "Exceptions";
+static guint8 const *const ATTRIBUTE_InnerClass                           = "InnerClass";
+static guint8 const *const ATTRIBUTE_EnclosingMethod                      = "EnclosingMethod";
+static guint8 const *const ATTRIBUTE_Synthetic                            = "Synthetic";
+static guint8 const *const ATTRIBUTE_Signature                            = "Signature";
+static guint8 const *const ATTRIBUTE_SourceFile                           = "SourceFile";
+static guint8 const *const ATTRIBUTE_SourceDebugExtension                 = "SourceDebugExtension";
+static guint8 const *const ATTRIBUTE_LineNumberTable                      = "LineNumberTable";
+static guint8 const *const ATTRIBUTE_LocalVariableTable                   = "LocalVariableTable";
+static guint8 const *const ATTRIBUTE_LocalVariableTypeTable               = "LocalVariableTypeTable";
+static guint8 const *const ATTRIBUTE_Deprecated                           = "Deprecated";
+static guint8 const *const ATTRIBUTE_RuntimeVisibleAnnotations            = "RuntimeVisibleAnnotations";
+static guint8 const *const ATTRIBUTE_RuntimeInvisibleAnnotations          = "RuntimeInvisibleAnnotations";
+static guint8 const *const ATTRIBUTE_RuntimeVisibleParameterAnnotations   = "RuntimeVisibleParameterAnnotations";
+static guint8 const *const ATTRIBUTE_RuntimeInvisibleParameterAnnotations = "RuntimeInvisibleParameterAnnotations";
+static guint8 const *const ATTRIBUTE_AnnotationDefault                    = "AnnotationDefault";
+static guint8 const *const ATTRIBUTE_BootstrapMethods                     = "BootstrapMethods";
 
-} ConstantPoolTags;
-
-typedef enum
-{
-  ITEM_Top = 0,
-  ITEM_Integer = 1,
-  ITEM_Float = 2,
-  ITEM_Long = 3,
-  ITEM_Double = 4,
-  ITEM_Null = 5,
-  ITEM_UninitializedThis = 6,
-  ITEM_Object = 7,
-  ITEM_Unititialized = 8
-} ItemTag;
+/* Constant tags used in VariableTypeInfo */
+static const guint8 ITEM_Top               = 0;
+static const guint8 ITEM_Integer           = 1;
+static const guint8 ITEM_Float             = 2;
+static const guint8 ITEM_Long              = 3;
+static const guint8 ITEM_Double            = 4;
+static const guint8 ITEM_Null              = 5;
+static const guint8 ITEM_UninitializedThis = 6;
+static const guint8 ITEM_Object            = 7;
+static const guint8 ITEM_Unititialized     = 8;
 
 #endif /* __CLASSFILE_H__ */

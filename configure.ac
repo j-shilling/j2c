@@ -15,23 +15,11 @@ AM_PROG_AR
 
 # Checks for libraries.
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
-AC_SEARCH_LIBS([sqrt], [m])
 
-# Checks for header files.
-AC_CHECK_HEADERS([stdlib.h stddef.h string.h])
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_CHECK_HEADER_STDBOOL
-AC_TYPE_SIZE_T
-
-# Checks for library functions.
-AC_FUNC_MALLOC
+PKG_CHECK_MODULES([GLIB], [glib-2.0])
+PKG_CHECK_MODULES([GIO], [gio-2.0])
+PKG_CHECK_MODULES([GOBJECT], [gobject-2.0])
 
 AC_CONFIG_FILES([Makefile
-                 src/Makefile
-		 		 src/object/Makefile
-		 		 src/util/Makefile
-		 		 tests/Makefile
-				 tests/object/Makefile
-		 		 tests/util/Makefile])
+                 src/Makefile])
 AC_OUTPUT
