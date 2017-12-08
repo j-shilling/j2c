@@ -13,6 +13,9 @@ static gboolean j2c_parse_verbosity (const gchar *option_name,
 static void j2c_parse_input_files (gpointer data,
 				   gpointer user_data);
 
+static void j2c_index_files (gpointer data,
+			     gpointer user_data);
+
 static guint verbosity = 0;
 static gint max_threads = 5;
 
@@ -361,4 +364,8 @@ j2c_parse_input_files (gpointer data,
   g_object_unref (info);
 }
 
+static void
+j2c_index_files (gpointer data, gpointer user_data)
+{
 
+}

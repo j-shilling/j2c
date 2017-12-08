@@ -1,4 +1,4 @@
-#include <j2c/class-file.h>
+#include "../include/indexer/class-file.h"
 
 struct _J2cClassFile
 {
