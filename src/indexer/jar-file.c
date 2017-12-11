@@ -157,7 +157,7 @@ j2c_jar_member_class_init (J2cJarMemberClass *klass)
 			 "Identifier for the local file",
 			 G_TYPE_FILE,
 			 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-  g_object_class_install_property (object_class, PROP_FILE,
+  g_object_class_install_property (object_class, PROP_INDEX,
     g_param_spec_int64 (J2C_JAR_FILE_PROPERTY_INDEX,
 			 "index",
 			 "index within the jar file",
@@ -187,6 +187,7 @@ static void
 j2c_jar_member_readable_interface_init (J2cReadableInterface *iface)
 {
   iface->read = j2c_jar_member_read;
+  iface->name = j2c_jar_member_name;
 }
 
 static void
