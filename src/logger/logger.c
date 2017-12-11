@@ -64,19 +64,7 @@ j2c_logger_set_file (GFile *file)
 
   logger.file = file;
 
-  GFileInfo *info = g_file_query_info (logger.file,
-				       G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME,
-				       G_FILE_QUERY_INFO_NONE,
-				       NULL,
-				       NULL);
-
-  const gchar *name = info ?
-    g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME) :
-    NULL;
-  j2c_logger_fine ("Logging to file \'%s\'", name ? name : "[unkown_name]");
-
-  if (info)
-    g_object_unref (info);
+ j2c_logger_fine ("Logging to file \'%s\'", g_file_get_path (logger.file));
 }
 
 void

@@ -19,7 +19,7 @@ G_BEGIN_DECLS
 #define J2C_TYPE_INDEXED_FILE	j2c_indexed_file_get_type()
 G_DECLARE_DERIVABLE_TYPE (J2cIndexedFile, j2c_indexed_file, J2C, INDEXED_FILE, GObject);
 
-static const gchar *J2C_INDEXED_FILE_PROPERTY_READABLE = "indexed-file::readable";
+static const gchar *J2C_INDEXED_FILE_PROPERTY_READABLE = "indexed-file-readable";
 
 struct _J2cIndexedFileClass
 {

@@ -38,6 +38,7 @@ j2c_readable_new (GFile *file)
 
 struct _J2cReadableFile
 {
+  GObject parent_instance;
   GFile *file;
 };
 
@@ -90,6 +91,21 @@ j2c_readable_file_set_property (GObject *object, guint property_id,
 }
 
 static void
+j2c_readable_file_get_property (GObject *object, guint property_id,
+			        GValue *value, GParamSpec *pspec)
+{
+  if (property_id == 1)
+    {
+      J2cReadableFile *self = J2C_READABLE_FILE (object);
+      g_value_set_object (value, self->file);
+    }
+  else
+    {
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    }
+}
+
+static void
 j2c_readable_file_init (J2cReadableFile *self)
 {
   return;
@@ -108,9 +124,14 @@ j2c_readable_file_class_init (J2cReadableFileClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   object_class->set_property = j2c_readable_file_set_property;
+  object_class->get_property = j2c_readable_file_get_property;
   object_class->dispose = j2c_readable_file_dispose;
 
   g_object_class_install_property (object_class, 1,
-				   g_param_spec_object ("file", "file", "file", G_TYPE_FILE, G_PARAM_CONSTRUCT_ONLY));
+				   g_param_spec_object ("file",
+							"file",
+							"file",
+							G_TYPE_FILE,
+							G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 

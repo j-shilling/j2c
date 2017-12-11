@@ -4,6 +4,7 @@
 #include <glib.h>
 
 #include <j2c/logger.h>
+#include <j2c/index.h>
 
 static gboolean j2c_parse_verbosity (const gchar *option_name,
 				     const gchar *value,
@@ -19,10 +20,7 @@ static void j2c_index_files (gpointer data,
 static guint verbosity = 0;
 static gint max_threads = 5;
 
-static gchar *default_log_filename = "j2c.log";
 static gchar *log_filename = NULL;
-
-static gchar *default_output_filename = "target";
 static gchar *output_filename = NULL;
 
 static gchar **class_path_filenames = NULL;
@@ -92,18 +90,17 @@ main (gint argc, gchar *argv[])
   if (log_filename)
     {
       j2c_logger_set_file (g_file_new_for_commandline_arg (log_filename));
-      if (log_filename != default_log_filename)
-	g_free (log_filename);
+      g_free (log_filename);
+    }
+  else
+    {
+      j2c_logger_set_file (g_file_new_for_path ("j2c.log"));
     }
 
   j2c_logger_finest ("Logging initialized.");
 
   if (max_threads < 1)
     max_threads = 1;
-  if (!log_filename)
-    log_filename = default_log_filename;
-  if (!output_filename)
-    output_filename = default_output_filename;
 
   j2c_logger_finer ("Parsed args:");
   if (verbosity == 1)
@@ -199,42 +196,70 @@ main (gint argc, gchar *argv[])
 
   j2c_logger_finer ("Parsed files in class path:");
   for (GSList *file = class_path_files; file; file = file->next)
-    {
-      GFile *f = file->data;
-      GFileInfo *info = g_file_query_info (f, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME, G_FILE_QUERY_INFO_NONE, NULL, &error);
-      if (error)
-	{
-	  j2c_logger_warning ("Error getting filename: %s", error->message);
-	  g_error_free (error);
-	  error = NULL;
-	  continue;
-	}
-
-      j2c_logger_finer ("\t%s",
-			g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME));
-      if (info)
-	g_object_unref (info);
-    }
+    j2c_logger_finer ("\t%s", g_file_get_path (file->data));
 
   j2c_logger_finer ("Parsed files in target path:");
   for (GSList *file = target_files; file; file = file->next)
-    {
-      GFile *f = (GFile *)file->data;
-      GFileInfo *info = g_file_query_info (f, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME, G_FILE_QUERY_INFO_NONE, NULL, &error);
-      if (!info)
-	{
-	  j2c_logger_warning ("Error getting filename: %s", error ? error->message : "unkown error");
-	  if (error)
-	    g_error_free (error);
-	  error = NULL;
-	  continue;
-	}
+    j2c_logger_finer ("\t%s", g_file_get_path (file->data));
 
-      j2c_logger_finer ("\t%s",
-			g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME));
-      if (info)
-	g_object_unref (info);
+  /****
+    INDEXING FILES
+   ****/
+
+  j2c_logger_heading ("indexing files");
+  J2cIndex *class_path_index = j2c_index_new ();
+  pool = g_thread_pool_new (j2c_index_files,
+			    class_path_index,
+			    max_threads,
+			    TRUE,
+			    &error);
+  if (error)
+    {
+      j2c_logger_severe ("Error creating thread pool: %s", error->message);
+      g_error_free (error);
+      error = NULL;
     }
+  j2c_logger_finer ("Indexing class path.");
+  for (GSList *file = class_path_files; file; file = file->next)
+    {
+      if (!g_thread_pool_push (pool, file->data, &error))
+	{
+	  j2c_logger_severe ("%s", error->message);
+	  g_error_free (error);
+	  error = NULL;
+	}
+    }
+  g_thread_pool_free (pool, FALSE, TRUE);
+
+  j2c_logger_fine ("Indexed class path --");
+  j2c_index_log_contents (class_path_index, J2C_LOGGER_LEVEL_FINE);
+
+  J2cIndex *target_index = j2c_index_new ();
+  pool = g_thread_pool_new (j2c_index_files,
+			    target_index,
+			    max_threads,
+			    TRUE,
+			    &error);
+  if (error)
+    {
+      j2c_logger_severe ("Error creating thread pool: %s", error->message);
+      g_error_free (error);
+      error = NULL;
+    }
+  j2c_logger_finer ("Indexing target.");
+  for (GSList *file = target_files; file; file = file->next)
+    {
+      if (!g_thread_pool_push (pool, file->data, &error))
+	{
+	  j2c_logger_severe ("%s", error->message);
+	  g_error_free (error);
+	  error = NULL;
+	}
+    }
+  g_thread_pool_free (pool, FALSE, TRUE);
+
+  j2c_logger_fine ("Indexed target --");
+  j2c_index_log_contents (target_index, J2C_LOGGER_LEVEL_FINE);
 }
 
 static gboolean
@@ -265,7 +290,6 @@ j2c_parse_input_files (gpointer data,
   GFile *file = g_file_new_for_commandline_arg (filename);
   GFileInfo *info = g_file_query_info (file,
 				       G_FILE_ATTRIBUTE_STANDARD_TYPE ","
-				       G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME ","
 				       G_FILE_ATTRIBUTE_ACCESS_CAN_READ,
 				       G_FILE_QUERY_INFO_NONE,
 				       NULL,
@@ -282,8 +306,7 @@ j2c_parse_input_files (gpointer data,
 
   if (!g_file_info_get_attribute_boolean (info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ))
     {
-      j2c_logger_warning ("Cannot read file \'%s\'",
-			  g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME));
+      j2c_logger_warning ("Cannot read file \'%s\'", g_file_get_path (file));
       g_object_unref (info);
       g_object_unref (file);
       return;
@@ -298,9 +321,10 @@ j2c_parse_input_files (gpointer data,
     }
   else
     {
+      j2c_logger_fine ("Entering %s", g_file_get_path (file));
       GFileEnumerator *direnum = g_file_enumerate_children (file,
 							    G_FILE_ATTRIBUTE_STANDARD_TYPE ","
-							    G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME ","
+							    G_FILE_ATTRIBUTE_STANDARD_NAME ","
 							    G_FILE_ATTRIBUTE_ACCESS_CAN_READ,
 							    G_FILE_QUERY_INFO_NONE,
 							    NULL,
@@ -308,7 +332,7 @@ j2c_parse_input_files (gpointer data,
       if (error)
 	{
 	  j2c_logger_warning ("Cannot read directory \'%s\': %s",
-			      g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME),
+			      g_file_get_path (file),
 			      error->message);
 	  g_error_free (error);
 	  g_object_unref (info);
@@ -323,7 +347,7 @@ j2c_parse_input_files (gpointer data,
 	  if (!g_file_enumerator_iterate (direnum, &child_info, &child, NULL, &error))
 	    {
 	      j2c_logger_warning ("Error reading children of \'%s\': %s",
-				  g_file_info_get_attribute_string (info, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME),
+				  g_file_get_path (file),
 				  error->message);
 	      g_error_free (error);
 	      g_object_unref (file);
@@ -337,7 +361,7 @@ j2c_parse_input_files (gpointer data,
 	      if (!g_file_info_get_attribute_boolean (child_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ))
 		{
 		  j2c_logger_warning ("Cannot read file \'%s\'",
-				      g_file_info_get_attribute_string (child_info, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME));
+				      g_file_get_path (child));
 		  continue;
 		}
 
@@ -345,7 +369,7 @@ j2c_parse_input_files (gpointer data,
 		  g_file_info_get_attribute_uint32 (child_info, G_FILE_ATTRIBUTE_STANDARD_TYPE))
 		{
 		  j2c_logger_fine ("Ignoring subdirectory \'%s\'.",
-				   g_file_info_get_attribute_string (child_info, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME));
+				   g_file_get_path (child));
 		  continue;
 		}
 	     
@@ -362,10 +386,13 @@ j2c_parse_input_files (gpointer data,
     }
 
   g_object_unref (info);
+
+
 }
 
 static void
 j2c_index_files (gpointer data, gpointer user_data)
 {
-
+  j2c_index_insert_file ((J2cIndex *)user_data, (GFile *)data);
+  g_object_unref (data);
 }

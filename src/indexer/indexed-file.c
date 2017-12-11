@@ -17,7 +17,10 @@ static void j2c_indexed_file_set_property (GObject *object,
 					 guint property_id,
 					 const GValue *value,
 					 GParamSpec *pspec);
-
+static void j2c_indexed_file_get_property (GObject *object,
+					 guint property_id,
+					 GValue *value,
+					 GParamSpec *pspec);
 /****
  * CONSTRUCTION
  */
@@ -27,6 +30,7 @@ j2c_indexed_file_class_init (J2cIndexedFileClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   object_class->set_property = j2c_indexed_file_set_property;
+  object_class->get_property = j2c_indexed_file_get_property;
   object_class->dispose = j2c_indexed_file_dispose;
 
   g_object_class_install_property (object_class, 1,
@@ -34,7 +38,7 @@ j2c_indexed_file_class_init (J2cIndexedFileClass *klass)
 							"readable",
 							"A readable object.",
 							J2C_TYPE_READABLE,
-							G_PARAM_CONSTRUCT_ONLY));
+							G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -79,6 +83,21 @@ j2c_indexed_file_set_property (GObject *object, guint property_id,
     }
 }
 
+static void
+j2c_indexed_file_get_property (GObject *object, guint property_id,
+			       GValue *value, GParamSpec *pspec)
+{
+  if (property_id == 1)
+    {
+      J2cIndexedFilePrivate *priv =
+            j2c_indexed_file_get_instance_private (J2C_INDEXED_FILE (object));
+      g_value_set_object (value, priv->readable);
+    }
+  else
+    {
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+    }
+}
 /****
  * PUBLIC IMPLEMENTATIONS
  */
@@ -92,14 +111,14 @@ j2c_indexed_file_new (J2cReadable *readable)
 gchar *
 j2c_indexed_file_get_name (J2cIndexedFile *self)
 {
-  J2cIndexedFileClass *klass = J2C_INDEXED_FILE_CLASS (self);
+  J2cIndexedFileClass *klass = J2C_INDEXED_FILE_GET_CLASS (self);
   return klass->get_name (self);
 }
 
 J2cFileType
 j2c_indexed_file_get_file_type (J2cIndexedFile *self)
 {
-  J2cIndexedFileClass *klass = J2C_INDEXED_FILE_CLASS (self);
+  J2cIndexedFileClass *klass = J2C_INDEXED_FILE_GET_CLASS (self);
   return klass->get_file_type (self);
 }
 
@@ -116,6 +135,6 @@ j2c_indexed_file_get_readable (J2cIndexedFile *self)
 GDataInputStream *
 j2c_indexed_file_read (J2cIndexedFile *self, GError **error)
 {
-  J2cIndexedFileClass *klass = J2C_INDEXED_FILE_CLASS (self);
+  J2cIndexedFileClass *klass = J2C_INDEXED_FILE_GET_CLASS (self);
   return klass->read (self, error);
 }

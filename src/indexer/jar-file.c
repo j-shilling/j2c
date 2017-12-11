@@ -23,12 +23,11 @@ struct _J2cJarMember
 enum
 {
   PROP_FILE = 1,
-  PROP_INDEX = 2,
-  N_PROPERTIES = 3
+  PROP_INDEX = 2
 };
 
-static const gchar *const J2C_JAR_FILE_PROPERTY_FILE = "jar-file::file";
-static const gchar *const J2C_JAR_FILE_PROPERTY_INDEX = "jar-file::index";
+static const gchar *const J2C_JAR_FILE_PROPERTY_FILE = "jar-file-file";
+static const gchar *const J2C_JAR_FILE_PROPERTY_INDEX = "jar-file-index";
 
 /****
  * PRIV METHOD PROTOTYPES
@@ -48,11 +47,18 @@ static void j2c_jar_file_set_property (GObject *object,
 					 guint property_id,
 					 const GValue *value,
 					 GParamSpec *pspec);
+static void j2c_jar_file_get_property (GObject *object,
+					 guint property_id,
+					 GValue *value,
+					 GParamSpec *pspec);
 static void j2c_jar_member_set_property (GObject *object,
 					 guint property_id,
 					 const GValue *value,
 					 GParamSpec *pspec);
-
+static void j2c_jar_member_get_property (GObject *object,
+					 guint property_id,
+					 GValue *value,
+					 GParamSpec *pspec);
 /* Initable Methods */
 static gboolean j2c_jar_file_initable_init (GInitable *initable,
 					      GCancellable *cancellable,
@@ -88,7 +94,6 @@ j2c_jar_file_new (GFile *file, GError **error)
   gpointer ret = g_initable_new (J2C_TYPE_JAR_FILE,
 				 NULL,
 				 &tmp_error,
-
 				J2C_JAR_FILE_PROPERTY_FILE, file,
 				NULL);
 
@@ -125,6 +130,7 @@ j2c_jar_file_class_init (J2cJarFileClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   object_class->set_property = j2c_jar_file_set_property;
+  object_class->get_property = j2c_jar_file_get_property;
   object_class->dispose = j2c_jar_file_dispose;
 
   g_object_class_install_property (object_class, PROP_FILE,
@@ -132,7 +138,7 @@ j2c_jar_file_class_init (J2cJarFileClass *klass)
 			 "file",
 			 "Identifier for the local file",
 			 G_TYPE_FILE,
-			 G_PARAM_READABLE | G_PARAM_CONSTRUCT_ONLY));
+			 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -141,6 +147,7 @@ j2c_jar_member_class_init (J2cJarMemberClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
   object_class->set_property = j2c_jar_member_set_property;
+  object_class->get_property = j2c_jar_member_get_property;
   object_class->dispose = j2c_jar_member_dispose;
   object_class->constructed = j2c_jar_member_constructed;
 
@@ -149,13 +156,13 @@ j2c_jar_member_class_init (J2cJarMemberClass *klass)
 			 "file",
 			 "Identifier for the local file",
 			 G_TYPE_FILE,
-			 G_PARAM_CONSTRUCT_ONLY));
+			 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
   g_object_class_install_property (object_class, PROP_FILE,
     g_param_spec_int64 (J2C_JAR_FILE_PROPERTY_INDEX,
 			 "index",
 			 "index within the jar file",
 			 G_MININT64, G_MAXINT64, -1,
-			 G_PARAM_CONSTRUCT_ONLY));
+			 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void
@@ -252,6 +259,26 @@ j2c_jar_file_set_property (GObject *object,
 }
 
 static void
+j2c_jar_file_get_property (GObject *object,
+			   guint property_id,
+			   GValue *value,
+			   GParamSpec *pspec)
+{
+  J2cJarFile *self = J2C_JAR_FILE (object);
+
+  switch (property_id)
+    {
+    case PROP_FILE:
+      g_value_set_object (value, self->file);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
 j2c_jar_member_set_property (GObject *object,
 	     		     guint property_id,
 			     const GValue *value,
@@ -269,6 +296,34 @@ j2c_jar_member_set_property (GObject *object,
 	}
 
       self->file = g_value_dup_object (value);
+      break;
+
+    case PROP_INDEX:
+      self->index = g_value_get_int64 (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_jar_member_get_property (GObject *object,
+			      guint property_id,
+			      GValue *value,
+			      GParamSpec *pspec)
+{
+  J2cJarMember *self = J2C_JAR_MEMBER (object);
+
+  switch (property_id)
+    {
+    case PROP_FILE:
+      g_value_set_object (value, self->file);
+      break;
+
+    case PROP_INDEX:
+      g_value_set_int64 (value, self->index);
       break;
 
     default:
