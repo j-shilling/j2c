@@ -1,5 +1,6 @@
 #include <j2c/indexed-file.h>
 #include <j2c/resource-file.h>
+#include <j2c/class-file.h>
 
 typedef struct
 {
@@ -105,6 +106,10 @@ j2c_indexed_file_get_property (GObject *object, guint property_id,
 J2cIndexedFile *
 j2c_indexed_file_new (J2cReadable *readable)
 {
+  GError *error = NULL;
+  gpointer ret = j2c_class_file_new (readable, &error);
+  if (ret) return ret;
+
   return J2C_INDEXED_FILE (j2c_resource_file_new (readable));
 }
 

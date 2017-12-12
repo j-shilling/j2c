@@ -6,6 +6,7 @@ libindexer_a_SOURCES = 	index.c \
 						indexed-file.c \
 						jar-file.c \
 						readable.c \
+						class-file.c \
 						resource-file.c \
 						zip-input-stream.c
 						

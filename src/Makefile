@@ -219,7 +219,7 @@ AUTOMAKE = ${SHELL} /home/jake/projects/j2c/missing automake-1.15
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -ggdb -O0
+CFLAGS = -g -O2
 CHECK_CFLAGS = -pthread
 CHECK_LIBS = -lcheck
 CPPFLAGS = 

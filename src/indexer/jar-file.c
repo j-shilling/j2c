@@ -2,6 +2,7 @@
 #include <j2c/indexed-file.h>
 #include <j2c/zip-input-stream.h>
 
+#include <string.h>
 #include <zip.h>
 
 struct _J2cJarFile
@@ -391,12 +392,23 @@ j2c_jar_file_expand (J2cJarFile *self)
   g_return_val_if_fail (NULL != self, NULL);
 
   guint64 len = self->entries < 0 ? 0 : self->entries;
-  J2cReadable **ret = g_malloc (sizeof (J2cReadable *) * (len + 1));
+  J2cReadable **ret = g_malloc0 (sizeof (J2cReadable *) * (len + 1));
 
+  gint index = 0;
   for (guint64 i = 0; i < len; i++)
-    ret[i] = J2C_READABLE (j2c_jar_member_new (self->file, i));
-
-  ret[len] = 0;
+    {
+      J2cReadable *readable = J2C_READABLE (j2c_jar_member_new (self->file, i));
+      const gchar *name = j2c_readable_name (readable);
+      if (name[strlen (name) - 1] == '/')
+	{
+	  g_object_unref (readable);
+	}
+      else
+	{
+	  ret[index] = readable;
+	  index ++;
+	}
+    }
 
   return ret;
 }

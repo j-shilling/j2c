@@ -26,6 +26,9 @@ static void
 j2c_zip_input_stream_set_property (GObject *object, guint property_id,
 				   const GValue *value, GParamSpec *pspec);
 static void
+j2c_zip_input_stream_get_property (GObject *object, guint property_id,
+				   GValue *value, GParamSpec *pspec);
+static void
 j2c_zip_input_stream_dispose (GObject *object);
 
 /* GInputStream */
@@ -67,14 +70,15 @@ j2c_zip_input_stream_class_init (J2cZipInputStreamClass *klass)
   GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
   object_class->set_property = j2c_zip_input_stream_set_property;
+  object_class->get_property = j2c_zip_input_stream_get_property;
   object_class->dispose = j2c_zip_input_stream_dispose;
 
   g_object_class_install_property (
       object_class, 1,
-      g_param_spec_pointer ("zip", "zip", "zip_t for the zip file", G_PARAM_CONSTRUCT_ONLY));
+      g_param_spec_pointer ("zip", "zip", "zip_t for the zip file", G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
   g_object_class_install_property (
       object_class, 2,
-      g_param_spec_pointer ("file", "file", "zip_file_t for the file in a zip", G_PARAM_CONSTRUCT_ONLY));
+      g_param_spec_pointer ("file", "file", "zip_file_t for the file in a zip", G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
   GInputStreamClass *input_stream_class = G_INPUT_STREAM_CLASS(klass);
   input_stream_class->read_fn = j2c_zip_input_stream_read_fn;
@@ -125,12 +129,41 @@ j2c_zip_input_stream_set_property (GObject *object, guint property_id,
       else if (self->zip != zip)
 	g_warning ("J2cZipInputStream::zip should only be set once.");
     }
+  else if (property_id == 2)
+    {
+      J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (object);
+      zip_file_t *file = g_value_get_pointer (value);
+
+      if (self->file == NULL)
+	self->file = file;
+      else if (self->file != file)
+	g_warning ("J2cZipInputStream::file should only be set once.");
+    }
   else
     {
       G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
     }
 }
 
+static void
+j2c_zip_input_stream_get_property (GObject *object, guint property_id,
+				   GValue *value, GParamSpec *pspec)
+{
+  if (property_id == 1)
+    {
+      J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (object);
+      g_value_set_pointer (value, self->zip);
+    }
+  else if (property_id == 2)
+    {
+      J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (object);
+      g_value_set_pointer (value, self->file);
+    }
+  else
+    {
+      G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+    }
+}
 static gssize
 j2c_zip_input_stream_read_fn (GInputStream *stream, void *buffer, gsize count,
 			      GCancellable *cancellable, GError **error)

@@ -3,19 +3,13 @@
 
 #include <glib-object.h>
 #include <glib.h>
-#include <gio/gio.h>
 
-/* Error codes */
-#define J2C_CLASS_FILE_ERROR  j2c_class_file_quark()
-
-typedef enum
-{
-  J2C_CLASS_FILE_NOT_A_CLASS_FILE_ERROR
-} J2cClassFileError;
+#include <j2c/indexed-file.h>
+#include <j2c/readable.h>
 
 /* CLASS FILE CONSTANT VALUES */
 
-const guint32 J2C_CLASS_FILE_MAGIC = 0xCAFEBABE;
+static const guint32 J2C_CLASS_FILE_MAGIC = 0xCAFEBABE;
 
 /* Tag values identify types of structures in the constant pool */
 static const guint8 CONSTANT_Class              =  7;
@@ -36,9 +30,9 @@ static const guint8 CONSTANT_InvokeDynamic      = 1;
 G_BEGIN_DECLS
 
 #define J2C_TYPE_CLASS_FILE j2c_class_file_get_type ()
-G_DECLARE_FINAL_TYPE (J2cClassFile, j2c_class_file, J2C, CLASS_FILE, GObject);
+G_DECLARE_FINAL_TYPE (J2cClassFile, j2c_class_file, J2C, CLASS_FILE, J2cIndexedFile);
 
-J2cClassFile *j2c_class_file_new (GFile *file, GError **error);
+J2cClassFile *j2c_class_file_new (J2cReadable *readable, GError **error);
 
 G_END_DECLS
 

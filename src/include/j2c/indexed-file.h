@@ -7,6 +7,13 @@
 
 #include <j2c/readable.h>
 
+#define J2C_INDEXED_FILE_ERROR	g_quark_from_static_string ("j2c-indexed-file")
+
+typedef enum
+{
+  J2C_INDEXED_FILE_TYPE_ERROR
+} J2cIndexedFileError;
+
 typedef enum
 {
   J2C_FILE_TYPE_RESOURCE,
