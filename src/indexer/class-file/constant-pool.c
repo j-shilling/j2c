@@ -9,7 +9,7 @@ struct _J2cConstantPool
   GObject parent;
 
   guint16 count;
-  J2cConstandPoolItem *pool;
+  GPtrArray *pool;
 };
 
 struct _J2cClassInfo
@@ -666,8 +666,7 @@ j2c_constant_pool_set_property (GObject *object, guint property_id, const GValue
 	    break;
 	  }
 
-	GPtrArray *array = g_value_get_boxed (value);
-	self->pool = g_ptr_array_free (array, FALSE);
+	self->pool = g_value_get_boxed (value);
 	break;
 
       default:
@@ -761,12 +760,381 @@ j2c_float_info_set_property (GObject *object, guint property_id, const GValue *v
     }
 }
 
-static void j2c_long_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void j2c_double_iynfo_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void j2c_name_and_type_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void j2c_utf8_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void j2c_method_handle_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void j2c_method_type_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
-static void j2c_invoke_dynamic_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
+static void
+j2c_long_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cLongInfo *self = J2C_LONG_INFO (object);
 
+  switch (property_id)
+    {
+    case PROP_VALUE:
+      self->value = g_value_get_int64 (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_double_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cDoubleInfo *self = J2C_DOUBLE_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_VALUE:
+      self->value = g_value_get_double (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_name_and_type_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cNameAndTypeInfo *self = J2C_NAME_AND_TYPE_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_NAME_INDEX:
+      self->name_index = (guint16) g_value_get_uint64 (value);
+      break;
+
+    case PROP_DESCRIPTOR_INDEX:
+      self->descriptor_index = (guint16) g_value_get_uint64 (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_utf8_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cUtf8Info *self = J2C_UTF8_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_LENGTH:
+      self->length = (guint16) g_value_get_uint64 (value);
+      break;
+
+    case PROP_BYTES:
+      self->bytes = g_value_dup_string (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_method_handle_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cMethodHandleInfo *self = J2C_METHOD_HANDLE_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_REFERENCE_KIND:
+      self->reference_kind = (guint8) g_value_get_uint64 (value);
+      break;
+
+    case PROP_REFERENCE_INDEX:
+      self->reference_index = (guint16) g_value_get_uint64 (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+static void
+j2c_method_type_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cMethodTypeInfo *self = J2C_METHOD_TYPE_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_DESCRIPTOR_INDEX:
+      self->descriptor_index = (guint16) g_value_get_uint64 (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_invoke_dynamic_info_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cInvokeDynamicInfo *self = J2C_INVOKE_DYNAMIC_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_BOOTSTRAP_METHOD_ATTR_INDEX:
+      self->bootstrap_method_attr_index = (guint16) g_value_get_uint64 (value);
+      break;
+
+    case PROP_NAME_AND_TYPE_INDEX:
+      self->name_and_type_index = (guint16) g_value_get_uint64 (value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+/****
+  GETTER FUNCTIONS
+ ****/
+
+static void
+j2c_constant_pool_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cConstantPool *self = J2C_CONSTANT_POOL (object);
+
+  switch (property_id)
+    {
+      case PROP_COUNT:
+	g_value_set_uint64 (value, (guint64) self->count);
+	break;
+
+      case PROP_POOL:
+	g_value_set_boxed (value, self->pool);
+	break;
+
+      default:
+	G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+	break;
+    }
+}
+
+static void
+j2c_constant_pool_item_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cClassPoolItemPrivate *priv = j2c_class_pool_item_get_private (J2C_CLASS_POOL_ITEM(object));
+
+  switch (property_id)
+    {
+    case PROP_TAG:
+      g_value_set_uint64 (value, (guint64) priv->tag);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspsec);
+      break;
+    }
+}
+
+static void
+j2c_fieldref_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cClassInfo *self = J2C_CLASS_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_NAME_INDEX:
+      g_value_set_uint64 (value, (guint64) self->name_index);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_string_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cStringInfo *self = J2C_STRING_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_STRING_INDEX:
+      g_value_set_uint64 (value, (guint64) self->string_index);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_integer_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cIntegerInfo *self = J2C_INTEGER_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_VALUE:
+      g_value_set_int64 (value, (gint64) self->value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_float_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cFloatInfo *self = J2C_FLOAT_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_VALUE:
+      g_value_set_float (value, self->value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_long_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cLongInfo *self = J2C_LONG_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_VALUE:
+      g_value_set_int64 (value, self->value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_double_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cDoubleInfo *self = J2C_DOUBLE_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_VALUE:
+      g_value_set_double (value, self->value);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_name_and_type_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cNameAndTypeInfo *self = J2C_NAME_AND_TYPE_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_NAME_INDEX:
+      g_value_set_uint64 (value, (guint64) self->name_index);
+      break;
+
+    case PROP_DESCRIPTOR_INDEX:
+      g_value_set_uint (value, (guint64) self->descriptor_index);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_utf8_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cUtf8Info *self = J2C_UTF8_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_LENGTH:
+      g_value_set_uint64 (value, (guint64) self->length);
+      break;
+
+    case PROP_BYTES:
+      g_value_set_string (value, self->bytes);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_method_handle_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cMethodHandleInfo *self = J2C_METHOD_HANDLE_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_REFERENCE_KIND:
+      g_value_set_uint64 (value, (guint64) self->reference_kind);
+      break;
+
+    case PROP_REFERENCE_INDEX:
+      g_value_set_uint64 (value, (guint64) self->reference_index);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+static void
+j2c_method_type_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cMethodTypeInfo *self = J2C_METHOD_TYPE_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_DESCRIPTOR_INDEX:
+      g_value_set_uint64 (value, (guint64) self->descriptor_index);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
+
+static void
+j2c_invoke_dynamic_info_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cInvokeDynamicInfo *self = J2C_INVOKE_DYNAMIC_INFO (object);
+
+  switch (property_id)
+    {
+    case PROP_BOOTSTRAP_METHOD_ATTR_INDEX:
+      g_value_set_uint64 (value, (guint64) self->bootstrap_method_attr_index);
+      break;
+
+    case PROP_NAME_AND_TYPE_INDEX:
+      g_value_set_uint64 (value, (guint64) self->name_and_type_index);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+      break;
+    }
+}
 
