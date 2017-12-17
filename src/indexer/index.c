@@ -76,76 +76,32 @@ j2c_index_insert (J2cIndex *self, J2cIndexedFile *item)
     }
 
   g_tree_insert (*tree, key, item);
+  j2c_logger_fine ("Indexed %s: %s",
+		   J2C_FILE_TYPE_RESOURCE == j2c_indexed_file_get_file_type (item) ?
+		     "resource" : "type",
+		   key);
 
 end:
   g_mutex_unlock (&self->m);
 }
 
 void
-j2c_index_insert_file (J2cIndex *self, GFile *file)
+j2c_index_insert_file (J2cIndex *self, J2cReadable *file)
 {
   g_return_if_fail (NULL != self);
   g_return_if_fail (NULL != file);
 
   GError *error = NULL;
-  J2cJarFile *jar_file = j2c_jar_file_new (file, &error);
-  if (jar_file)
+  J2cIndexedFile *item = j2c_indexed_file_new (file, &error);
+  if (item)
     {
-      J2cReadable **children = j2c_jar_file_expand (jar_file);
-      for (J2cReadable **cur = children; cur && *cur; cur++)
-	{
-	  J2cIndexedFile *item = j2c_indexed_file_new (*cur, &error);
-	  g_clear_object (cur);
-
-	  if (item)
-	    {
-	      j2c_index_insert (self, item);
-	    }
-	  else
-	    {
-	      j2c_logger_warning ("Could not create indexed file from %s: %s.",
-			       g_file_get_path (file),
-			       error->message);
-	      g_error_free (error);
-	      error = NULL;
-	    }
-	}
-      g_free (children);
-    }
-  else if (g_error_matches (error, J2C_JAR_FILE_ERROR, J2C_JAR_FILE_NOT_JAR_ERROR))
-    {
-      g_error_free (error);
-      error = NULL;
-
-      J2cReadable *readable = j2c_readable_new (file);
-      if (!readable)
-	{
-	  j2c_logger_warning ("Error reading %s: %s",
-			      g_file_get_path (file),
-			      error->message);
-	  g_error_free (error);
-	  return;
-	}
-
-      J2cIndexedFile *item = j2c_indexed_file_new (readable, &error);
-      if (item)
-	{
-	  j2c_index_insert (self, item);
-	}
-      else
-	{
-	  j2c_logger_warning ("Could not create indexed file from %s: %s.",
-			      g_file_get_path (file),
-			      error->message);
-	}
-      g_object_unref (readable);
+      j2c_index_insert (self, item);
     }
   else
     {
-      j2c_logger_warning("Error reading %s: %s", g_file_get_path (file),
-			 error->message);
-      g_error_free (error);
-      return;
+      j2c_logger_warning ("Could not create indexed file from %s: %s.",
+			  j2c_readable_name (file),
+			  error->message);
     }
 }
 

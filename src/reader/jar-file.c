@@ -202,7 +202,7 @@ j2c_jar_member_constructed (GObject *object)
   const gchar *name = zip_get_name (zip, self->index, ZIP_FL_ENC_GUESS);
   g_return_if_fail (NULL != name);
 
-  self->name = g_strdup (name);
+  self->name = g_strdup_printf ("%s:%s", g_file_get_path (self->file), name);
   zip_close (zip);
 }
 

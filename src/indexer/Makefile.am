@@ -4,12 +4,9 @@ noinst_LIBRARIES = libindexer.a
 
 libindexer_a_SOURCES = 	index.c \
 						indexed-file.c \
-						jar-file.c \
-						readable.c \
 						class-file.c \
 						constant-pool.c \
-						resource-file.c \
-						zip-input-stream.c
+						resource-file.c
 						
 libindexer_a_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GOBJECT_CFLAGS) $(ZIP_CFLAGS) \
 						-I$(top_srcdir)/src/include \
