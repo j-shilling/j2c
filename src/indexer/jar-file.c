@@ -399,6 +399,7 @@ j2c_jar_file_expand (J2cJarFile *self)
     {
       J2cReadable *readable = J2C_READABLE (j2c_jar_member_new (self->file, i));
       const gchar *name = j2c_readable_name (readable);
+
       if (name[strlen (name) - 1] == '/')
 	{
 	  g_object_unref (readable);

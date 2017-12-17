@@ -1,4 +1,5 @@
 #include <j2c/class-file.h>
+#include <j2c/constant-pool.h>
 
 #include <gio/gio.h>
 
@@ -83,13 +84,17 @@ j2c_class_file_dispose (GObject *object)
 static gboolean
 j2c_class_file_initable_init (GInitable *initable, GCancellable *cancellable, GError **error)
 {
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+  GError *tmp_error = NULL;
+
   J2cClassFile *self = J2C_CLASS_FILE (initable);
   GDataInputStream *stream = j2c_indexed_file_read (J2C_INDEXED_FILE (self), error);
   if (*error) return FALSE;
 
-  guint32 magic = g_data_input_stream_read_uint32 (stream, NULL, error);
-  if (*error)
+  guint32 magic = g_data_input_stream_read_uint32 (stream, NULL, &tmp_error);
+  if (tmp_error)
     {
+      g_propagate_error (error, tmp_error);
       g_object_unref (stream);
       return FALSE;
     }
@@ -104,9 +109,59 @@ j2c_class_file_initable_init (GInitable *initable, GCancellable *cancellable, GE
       return FALSE;
     }
 
-  J2cReadable *readable = j2c_indexed_file_get_readable (J2C_INDEXED_FILE (self));
-  self->name = g_strdup (j2c_readable_name (readable));
+  J2cConstantPool *pool = j2c_constant_pool_new (self, &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      g_object_unref (stream);
+      return FALSE;
+    }
+
+  g_input_stream_skip (G_INPUT_STREAM (stream), j2c_constant_pool_size (pool) + 6, NULL, &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      g_object_unref (pool);
+      g_object_unref (stream);
+      return FALSE;
+    }
+
+  guint16 this_class = g_data_input_stream_read_uint16 (stream, NULL, &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      g_object_unref (pool);
+      g_object_unref (stream);
+      return FALSE;
+    }
+
+  J2cConstantPoolItem *info = j2c_constant_pool_get (pool, this_class, &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      g_object_unref (pool);
+      g_object_unref (stream);
+      return FALSE;
+    }
+
+  GValue val = G_VALUE_INIT;
+  g_value_init (&val, G_TYPE_UINT64);
+
+  g_object_get_property (G_OBJECT (info), J2C_CONSTANT_POOL_PROP_NAME_INDEX, &val);
+  guint16 name_index = (guint16) g_value_get_uint64 (&val);
+  g_value_unset (&val);
+
+  self->name = j2c_constant_pool_get_string (pool, name_index, &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      g_object_unref (pool);
+      g_object_unref (stream);
+      return FALSE;
+    }
+
   g_object_unref (stream);
+  g_object_unref (pool);
   return TRUE;
 }
 

@@ -38,7 +38,7 @@ struct _J2cIndexedFileClass
   GDataInputStream *(*read) (J2cIndexedFile *self, GError **error);
 };
 
-J2cIndexedFile *j2c_indexed_file_new (J2cReadable *readable);
+J2cIndexedFile *j2c_indexed_file_new (J2cReadable *readable, GError **error);
 
 gchar *j2c_indexed_file_get_name (J2cIndexedFile *self);
 J2cFileType j2c_indexed_file_get_file_type (J2cIndexedFile *self);

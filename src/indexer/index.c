@@ -94,10 +94,21 @@ j2c_index_insert_file (J2cIndex *self, GFile *file)
       J2cReadable **children = j2c_jar_file_expand (jar_file);
       for (J2cReadable **cur = children; cur && *cur; cur++)
 	{
-	  J2cReadable *child = *cur;
-	  J2cIndexedFile *item = j2c_indexed_file_new (child);
-	  g_object_unref (child);
-	  j2c_index_insert (self, item);
+	  J2cIndexedFile *item = j2c_indexed_file_new (*cur, &error);
+	  g_clear_object (cur);
+
+	  if (item)
+	    {
+	      j2c_index_insert (self, item);
+	    }
+	  else
+	    {
+	      j2c_logger_warning ("Could not create indexed file from %s: %s.",
+			       g_file_get_path (file),
+			       error->message);
+	      g_error_free (error);
+	      error = NULL;
+	    }
 	}
       g_free (children);
     }
@@ -116,9 +127,18 @@ j2c_index_insert_file (J2cIndex *self, GFile *file)
 	  return;
 	}
 
-      J2cIndexedFile *item = j2c_indexed_file_new (readable);
+      J2cIndexedFile *item = j2c_indexed_file_new (readable, &error);
+      if (item)
+	{
+	  j2c_index_insert (self, item);
+	}
+      else
+	{
+	  j2c_logger_warning ("Could not create indexed file from %s: %s.",
+			      g_file_get_path (file),
+			      error->message);
+	}
       g_object_unref (readable);
-      j2c_index_insert (self, item);
     }
   else
     {

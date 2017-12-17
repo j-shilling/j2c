@@ -104,11 +104,30 @@ j2c_indexed_file_get_property (GObject *object, guint property_id,
  */
 
 J2cIndexedFile *
-j2c_indexed_file_new (J2cReadable *readable)
+j2c_indexed_file_new (J2cReadable *readable, GError **error)
 {
-  GError *error = NULL;
-  gpointer ret = j2c_class_file_new (readable, &error);
-  if (ret) return ret;
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+  GError *tmp_error = NULL;
+
+  /* Try to create a J2cClassFile */
+  gpointer ret = j2c_class_file_new (readable, &tmp_error);
+  if (tmp_error)
+    {
+      if (g_error_matches (tmp_error,
+			   J2C_INDEXED_FILE_ERROR,
+			   J2C_INDEXED_FILE_TYPE_ERROR))
+	{
+	  g_error_free (tmp_error);
+	  tmp_error = NULL;
+	}
+      else
+	{
+	  g_propagate_error (error, tmp_error);
+	  return NULL;
+	}
+    }
+  if (ret) return J2C_INDEXED_FILE (ret);
 
   return J2C_INDEXED_FILE (j2c_resource_file_new (readable));
 }
