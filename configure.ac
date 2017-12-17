@@ -24,5 +24,6 @@ AC_CONFIG_FILES([Makefile
                  src/logger/Makefile
 		 src/reader/Makefile
                  src/indexer/Makefile
+		 src/compilation_unit/Makefile
                  src/indexer/class-file/Makefile])
 AC_OUTPUT

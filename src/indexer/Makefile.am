@@ -1,5 +1,3 @@
-SUBDIRS = class-file
-
 noinst_LIBRARIES = libindexer.a
 
 libindexer_a_SOURCES = 	index.c \
