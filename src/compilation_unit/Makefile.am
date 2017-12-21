@@ -2,7 +2,8 @@ noinst_LIBRARIES = libcompilationunit.a
 
 libcompilationunit_a_SOURCES = 	compilation-unit.c \
 				compilation-unit-class.c \
-				constant-pool.c
+				constant-pool.c \
+				attributes-class-file.c
 						
 libcompilationunit_a_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GOBJECT_CFLAGS) \
 						-I$(top_srcdir)/src/include \
