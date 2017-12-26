@@ -28,18 +28,7 @@ G_DECLARE_FINAL_TYPE (J2cInnerClassInfo, j2c_inner_class_info, J2C, INNER_CLASS_
 #define J2C_TYPE_BOOTSTRAP_METHOD_INFO j2c_bootstrap_method_info ()
 G_DECLARE_FINAL_TYPE (J2cBootstrapMethodInfo, j2c_bootstrap_method_info, J2C, BOOTSTRAP_METHOD_INFO, GObject)
 
-static gchar const *const J2C_ATTRIBUTE_PROP_SOURCE_FILE_INDEX = "attribute-source-file-index";
-static gchar const *const J2C_ATTRIBUTE_PROP_CLASSES = "attribute-classes";
-static gchar const *const J2C_ATTRIBUTE_PROP_INNER_CLASS_INFO_INDEX = "attribute-inner-class-info";
-static gchar const *const J2C_ATTRIBUTE_PROP_OUTER_CLASS_INFO_INDEX = "attribute-outer-class-info";
-static gchar const *const J2C_ATTRIBUTE_PROP_INNER_NAME_INDEX = "attribute-inner-name-index";
-static gchar const *const J2C_ATTRIBUTE_PROP_INNER_CLASS_ACCESS_FLAGS = "attribute-inner-class-access-flags";
-static gchar const *const J2C_ATTRIBUTE_PROP_CLASS_INDEX = "attribute-class-index";
-static gchar const *const J2C_ATTRIBUTE_PROP_METHOD_INDEX = "attribute-method-index";
-static gchar const *const J2C_ATTRIBUTE_PROP_DEBUG_EXTENSION = "attribute-debug-extension";
-static gchar const *const J2C_ATTRIBUTE_PROP_BOOTSTRAP_METHODS = "attribute-bootstrap-methods";
-static gchar const *const J2C_ATTRIBUTE_PROP_BOOTSTRAP_METHOD_REF = "attribute-bootstrap-method-ref";
-static gchar const *const J2C_ATTRIBUTE_PROP_BOOTSTRAP_ARGUMENTS = "attribute-bootstrap-arguments";
+
 
 G_END_DECLS
 

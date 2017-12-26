@@ -10,7 +10,7 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (J2cAttributeConstantValue, j2c_attribute_constant_value, J2C, ATTRIBUTE_CONSTANT_VALUE, GObject)
 static gchar const *const J2C_CONSTANT_VALUE = "ConstantValue";
 
-static gchar const *const J2C_ATTRIBUTE_PROP_CONSTANT_VALUE_INDEX = "attribute-constant-value-index";
+
 
 G_END_DECLS
 

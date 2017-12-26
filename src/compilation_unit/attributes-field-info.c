@@ -1,4 +1,4 @@
-#include <j2c/attributes-field-info.h>
+#include <j2c/attributes.h>
 
 struct _J2cAttributeConstantValue
 {
@@ -7,7 +7,7 @@ struct _J2cAttributeConstantValue
 };
 
 G_DEFINE_TYPE (J2cAttributeConstantValue, j2c_attribute_constant_value, G_TYPE_OBJECT)
-     
+
 /****
   PROPERTIES
  ****/

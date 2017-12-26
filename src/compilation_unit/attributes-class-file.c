@@ -1,4 +1,4 @@
-#include <j2c/attributes-class-file.h>
+#include <j2c/attributes.h>
 
 struct _J2cAttributeSourceFile
 {

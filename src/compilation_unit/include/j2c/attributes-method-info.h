@@ -39,20 +39,7 @@ G_DECLARE_FINAL_TYPE (J2cParameter, j2c_parameter, J2C, PARAMETER, GObject)
 
 
 
-static gchar const *const J2C_ATTRIBUTE_PROP_MAX_STACK = "attribute-max-stack";
-static gchar const *const J2C_ATTRIBUTE_PROP_MAX_LOCALS = "attribute-max-locals";
-static gchar const *const J2C_ATTRIBUTE_PROP_CODE = "attribute-code";
-static gchar const *const J2C_ATTRIBUTE_PROP_EXCEPTION_TABLE= "attribute-exception_table";
-static gchar const *const J2C_ATTRIBUTE_PROP_START_PC= "attribute-start-pc";
-static gchar const *const J2C_ATTRIBUTE_PROP_END_PC= "attribute-end-pc";
-static gchar const *const J2C_ATTRIBUTE_PROP_HANDLER_PC= "attribute-handler-pc";
-static gchar const *const J2C_ATTRIBUTE_PROP_CATCH_TYPE = "attribute-catch-type";
-static gchar const *const J2C_ATTRIBUTE_PROP_ATTRIBUTES = "attribute-attributes";
-static gchar const *const J2C_ATTRIBUTE_PROP_EXCEPTION_INDEX_TABLE = "attribute-exception-index-table";
-static gchar const *const J2C_ATTRIBUTE_PROP_PARAMETER_ANNOTATIONS = "attribute-parameter-annotations";
-static gchar const *const J2C_ATTRIBUTE_PROP_ANNOTATIONS = "attribute-annotations";
-static gchar const *const J2C_ATTRIBUTE_PROP_PARAMETERS = "attribute-parameters";
-static gchar const *const J2C_ATTRIBUTE_PROP_DEFAULT_VALUE = "attribute-default-value";
+
 
 
 G_END_DECLS
