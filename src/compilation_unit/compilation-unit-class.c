@@ -312,6 +312,8 @@ j2c_compilation_unit_class_dispose (GObject *object)
   self->fields = NULL;
   self->methods = NULL;
   self->attributes = NULL;
+
+  G_OBJECT_CLASS (j2c_compilation_unit_class_parent_class)->dispose (object);
 }
 
 /****

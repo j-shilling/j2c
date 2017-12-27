@@ -269,6 +269,7 @@ j2c_attribute_inner_classes_dispose (GObject *object)
       g_ptr_array_unref (self->classes);
       self->classes = NULL;
     }
+  G_OBJECT_CLASS (j2c_attribute_inner_classes_parent_class)->dispose (object);
 }
 
 static void
@@ -280,6 +281,7 @@ j2c_attribute_source_debug_extension_dispose (GObject *object)
       g_byte_array_unref (self->debug_extension);
       self->debug_extension = NULL;
     }
+  G_OBJECT_CLASS (j2c_attribute_source_debug_extension_parent_class)->dispose (object);
 }
 
 static void
@@ -291,6 +293,7 @@ j2c_attribute_bootstrap_methods_dispose (GObject *object)
       g_ptr_array_unref (self->bootstrap_methods);
       self->bootstrap_methods = NULL;
     }
+  G_OBJECT_CLASS (j2c_attribute_bootstrap_methods_parent_class)->dispose (object);
 }
 
 static void
@@ -302,6 +305,7 @@ j2c_bootstrap_method_info_dispose (GObject *object)
       g_array_unref (self->bootstrap_arguments);
       self->bootstrap_arguments = NULL;
     }
+  G_OBJECT_CLASS (j2c_bootstrap_method_info_parent_class)->dispose (object);
 }
 
 /****

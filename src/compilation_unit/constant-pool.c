@@ -651,6 +651,8 @@ j2c_constant_pool_dispose (GObject *object)
   g_ptr_array_free (constant_pool->pool, TRUE);
   constant_pool->pool = NULL;
   constant_pool->count = 0;
+
+  G_OBJECT_CLASS (j2c_constant_pool_parent_class)->dispose (object);
 }
 
 static void
@@ -672,6 +674,7 @@ j2c_utf8_info_dispose (GObject *object)
     g_free (utf8_info->bytes);
 
   utf8_info->bytes = NULL;
+  G_OBJECT_CLASS (j2c_utf8_info_parent_class)->dispose (object);
 }
 
 /****
