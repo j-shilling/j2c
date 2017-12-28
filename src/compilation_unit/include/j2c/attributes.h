@@ -10,7 +10,7 @@
 #include <glib.h>
 #include <gio/gio.h>
 
-gpointer j2c_read_field_attribute (GDataInputStream *in, J2cConstantPool *cp, GError **error);
+gpointer j2c_read_attribute (GType type, GDataInputStream *in, J2cConstantPool *cp, GError **error);
 
 /* Define property names */
 

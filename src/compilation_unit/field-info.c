@@ -74,7 +74,7 @@ j2c_field_info_from_class_file (GDataInputStream *in, J2cConstantPool *cp, GErro
   g_ptr_array_set_free_func (attributes, g_object_unref);
   for (gint i = 0; i < attributes_count; i ++)
     {
-      gpointer attribute = j2c_read_field_attribute (in, cp, &tmp_error);
+      gpointer attribute = j2c_read_attribute (J2C_TYPE_FIELD_INFO, in, cp, &tmp_error);
       if (tmp_error)
         goto error;
       else

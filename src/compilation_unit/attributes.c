@@ -1,7 +1,8 @@
 #include <j2c/attributes.h>
+#include <j2c/logger.h>
 
 gpointer
-j2c_read_field_attribute (GDataInputStream *in, J2cConstantPool *cp, GError **error)
+j2c_read_attribute (GType type, GDataInputStream *in, J2cConstantPool *cp, GError **error)
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   g_return_val_if_fail (in != NULL, NULL);
@@ -27,6 +28,8 @@ j2c_read_field_attribute (GDataInputStream *in, J2cConstantPool *cp, GError **er
     {
       g_input_stream_skip (G_INPUT_STREAM (in), length, NULL, &tmp_error);
       if (tmp_error) goto error;
+
+      j2c_logger_warning ("Unrecognized attribute name \'%s\'", name);
     }
 error:
   if (tmp_error)
