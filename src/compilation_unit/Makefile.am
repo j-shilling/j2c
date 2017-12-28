@@ -7,7 +7,7 @@ libcompilationunit_a_SOURCES = 	compilation-unit.c \
 				attributes-class-file.c \
 				attributes-field-info.c \
 				attributes-method-info.c \
-				field-info.c
+				method-or-field-info.c
 						
 libcompilationunit_a_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GOBJECT_CFLAGS) \
 						-I$(top_srcdir)/src/include \

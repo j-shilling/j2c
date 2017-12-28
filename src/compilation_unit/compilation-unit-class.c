@@ -1,6 +1,6 @@
 #include <j2c/compilation-unit-class.h>
 #include <j2c/constant-pool.h>
-#include <j2c/field-info.h>
+#include <j2c/method-or-field-info.h>
 
 #include <gio/gio.h>
 
