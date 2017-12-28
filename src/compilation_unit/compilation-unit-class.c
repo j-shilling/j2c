@@ -1,5 +1,6 @@
 #include <j2c/compilation-unit-class.h>
 #include <j2c/constant-pool.h>
+#include <j2c/field-info.h>
 
 #include <gio/gio.h>
 
@@ -14,7 +15,7 @@ struct _J2cCompilationUnitClass
   guint16 access_flags;
   guint16 this_class;
   guint16 super_class;
-  
+
   GArray    *interfaces;
   GPtrArray *fields;
   GPtrArray *methods;
@@ -83,7 +84,7 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
   guint16 access_flags;
   guint16 this_class;
   guint16 super_class;
-  guint16 interfaces_count; 
+  guint16 interfaces_count;
   GArray *interfaces = NULL;
   guint16 fields_count;
   GPtrArray *fields = NULL;
@@ -130,6 +131,18 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
       guint16 val = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
       if (tmp_error) goto error;
       g_array_append_val (interfaces, val);
+    }
+
+  fields_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+  if (tmp_error) goto error;
+  fields = g_ptr_array_sized_new (fields_count);
+  g_ptr_array_set_free_func (fields, g_object_unref);
+  for (gint i = 0; i < fields_count; i ++)
+    {
+      J2cFieldInfo *field = j2c_field_info_from_class_file (in, constant_pool, &tmp_error);
+      if (tmp_error) goto error;
+
+      g_ptr_array_add (fields, field);
     }
 
   g_object_unref (in);
@@ -241,7 +254,7 @@ j2c_compilation_unit_class_class_init (J2cCompilationUnitClassClass *klass)
 			ATTRIBUTES,
 			"Collection of J2cAttributeInfo for this type.",
 			G_TYPE_PTR_ARRAY,
-			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);  
+			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
   g_object_class_install_properties (object_class, N_PROPERTIES, obj_properties);
 }
@@ -433,5 +446,5 @@ j2c_compilation_unit_class_get_property (GObject *object, guint property_id, GVa
 static gchar const *
 j2c_compilation_unit_class_name (J2cCompilationUnit *compilation_unit)
 {
-  return J2C_COMPILATION_UNIT_CLASS (compilation_unit)->name;  
+  return J2C_COMPILATION_UNIT_CLASS (compilation_unit)->name;
 }
