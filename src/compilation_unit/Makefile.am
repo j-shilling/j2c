@@ -1,6 +1,7 @@
 noinst_LIBRARIES = libcompilationunit.a
 
-libcompilationunit_a_SOURCES = 	compilation-unit.c \
+libcompilationunit_a_SOURCES = 	modified-utf8.c \
+                                compilation-unit.c \
 				compilation-unit-class.c \
 				constant-pool.c \
 				attributes.c \

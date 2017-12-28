@@ -31,7 +31,7 @@ struct _J2cAttributeEnclosingMethod
 struct _J2cAttributeSourceDebugExtension
 {
   GObject parent;
-  GByteArray *debug_extension;
+  gchar *debug_extension;
 };
 
 struct _J2cAttributeBootstrapMethods
@@ -164,10 +164,10 @@ j2c_attribute_source_debug_extension_class_init (J2cAttributeSourceDebugExtensio
   object_class->dispose      = j2c_attribute_source_debug_extension_dispose;
 
   g_object_class_install_property (object_class, PROP_DEBUG_EXTENSION,
-				   g_param_spec_boxed (J2C_ATTRIBUTE_PROP_DEBUG_EXTENSION,
+				   g_param_spec_string (J2C_ATTRIBUTE_PROP_DEBUG_EXTENSION,
 						      J2C_ATTRIBUTE_PROP_DEBUG_EXTENSION,
 						      "",
-						      G_TYPE_BYTE_ARRAY,
+						      NULL,
 						      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
@@ -278,7 +278,7 @@ j2c_attribute_source_debug_extension_dispose (GObject *object)
   J2cAttributeSourceDebugExtension *self = J2C_ATTRIBUTE_SOURCE_DEBUG_EXTENSION (object);
   if (self->debug_extension)
     {
-      g_byte_array_unref (self->debug_extension);
+      g_free (self->debug_extension);
       self->debug_extension = NULL;
     }
   G_OBJECT_CLASS (j2c_attribute_source_debug_extension_parent_class)->dispose (object);
@@ -367,7 +367,7 @@ j2c_attribute_source_debug_extension_set_property (GObject *object, guint proper
   switch (property_id)
     {
     case PROP_DEBUG_EXTENSION:
-      self->debug_extension = g_value_get_boxed (value);
+      self->debug_extension = g_value_dup_string (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -487,7 +487,7 @@ j2c_attribute_source_debug_extension_get_property (GObject *object, guint proper
   switch (property_id)
     {
     case PROP_DEBUG_EXTENSION:
-      g_value_set_boxed (value, self->debug_extension);
+      g_value_set_string (value, self->debug_extension);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

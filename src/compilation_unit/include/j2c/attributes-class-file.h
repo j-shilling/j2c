@@ -25,7 +25,7 @@ static gchar const *const J2C_BOOTSTRAP_METHODS = "BootstrapMethods";
 #define J2C_TYPE_INNER_CLASS_INFO j2c_inner_class_info_get_type()
 G_DECLARE_FINAL_TYPE (J2cInnerClassInfo, j2c_inner_class_info, J2C, INNER_CLASS_INFO, GObject)
 
-#define J2C_TYPE_BOOTSTRAP_METHOD_INFO j2c_bootstrap_method_info ()
+#define J2C_TYPE_BOOTSTRAP_METHOD_INFO j2c_bootstrap_method_info_get_type ()
 G_DECLARE_FINAL_TYPE (J2cBootstrapMethodInfo, j2c_bootstrap_method_info, J2C, BOOTSTRAP_METHOD_INFO, GObject)
 
 
