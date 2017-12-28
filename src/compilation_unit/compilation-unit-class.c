@@ -1,6 +1,8 @@
 #include <j2c/compilation-unit-class.h>
 #include <j2c/constant-pool.h>
 #include <j2c/method-or-field-info.h>
+#include <j2c/attributes.h>
+#include <j2c/logger.h>
 
 #include <gio/gio.h>
 
@@ -143,6 +145,38 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
       if (tmp_error) goto error;
 
       g_ptr_array_add (fields, field);
+    }
+
+  methods_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+  if (tmp_error) goto error;
+  methods = g_ptr_array_sized_new (methods_count);
+  g_ptr_array_set_free_func (methods, g_object_unref);
+  for (gint i = 0; i < methods_count; i ++)
+    {
+      J2cMethodInfo *method = j2c_method_info_from_class_file (in, constant_pool, &tmp_error);
+      if (tmp_error) goto error;
+
+      g_ptr_array_add (methods, method);
+    }
+
+  attributes_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+  if (tmp_error) goto error;
+  attributes = g_ptr_array_sized_new (attributes_count);
+  g_ptr_array_set_free_func (attributes, g_object_unref);
+  for (gint i = 0; i < attributes_count; i++)
+    {
+      gpointer attribute =
+        j2c_read_attribute (J2C_TYPE_COMPILATION_UNIT_CLASS, in, constant_pool, &tmp_error);
+      if (tmp_error)
+        {
+          j2c_logger_warning ("Could not read attribute: %s.", tmp_error->message);
+          g_error_free (tmp_error);
+          tmp_error = NULL;
+        }
+      else
+        {
+          g_ptr_array_add (attributes, attribute);
+        }
     }
 
   g_object_unref (in);

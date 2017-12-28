@@ -10,6 +10,13 @@
 #include <glib.h>
 #include <gio/gio.h>
 
+#define J2C_ATTRIBUTE_ERROR g_quark_from_static_string ("j2c-attribute")
+
+typedef enum
+{
+  J2C_UNKNOWN_ATTRIBUTE_ERROR
+} J2cAttributeError;
+
 gpointer j2c_read_attribute (GType type, GDataInputStream *in, J2cConstantPool *cp, GError **error);
 
 /* Define property names */
