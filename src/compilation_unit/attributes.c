@@ -2,6 +2,7 @@
 #include <j2c/compilation-unit-class.h>
 #include <j2c/method-or-field-info.h>
 #include <j2c/modified-utf8.h>
+#include <j2c/logger.h>
 
 static gpointer
 j2c_read_attribute_any (gchar *name, GDataInputStream *in, const guint16 length, GError **error)
@@ -206,7 +207,7 @@ j2c_read_attribute_field (gchar *name, GDataInputStream *in, const guint16 lengt
 }
 
 static gpointer
-j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 length, GError **error)
+j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 length, J2cConstantPool *cp, GError **error)
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   g_return_val_if_fail (name != NULL && *name != '\0', NULL);
@@ -221,10 +222,140 @@ j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 leng
       ret = j2c_read_attribute_class_field_or_method (name, in, length, &tmp_error);
       if (!ret && !tmp_error)
         {
+          if (g_strcmp0 (name, J2C_CODE) == 0)
+            {
+              guint16 max_stack = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) goto end;
+              guint16 max_locals = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) goto end;
+              guint32 code_length = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
+              if (tmp_error) goto end;
+              guint8 *bytes = g_malloc (code_length);
 
+              if (code_length != g_input_stream_read (G_INPUT_STREAM (in), bytes, code_length, NULL, &tmp_error))
+                {
+                  g_free (bytes);
+                  goto end;
+                }
+
+              GByteArray *code = g_byte_array_new_take (bytes, code_length);
+
+              guint16 exception_table_length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) goto end;
+
+              GPtrArray *exception_table = g_ptr_array_sized_new (exception_table_length);
+              g_ptr_array_set_free_func (exception_table, g_object_unref);
+              for (gint i = 0; i < exception_table_length; i ++)
+                {
+                  guint16 start_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
+                  guint16 end_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
+                  guint16 handler_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
+                  guint16 catch_type = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
+
+                  J2cExceptionInfo *info = g_object_new (J2C_TYPE_EXCEPTION_INFO,
+                                                         J2C_ATTRIBUTE_PROP_START_PC, start_pc,
+                                                         J2C_ATTRIBUTE_PROP_END_PC, end_pc,
+                                                         J2C_ATTRIBUTE_PROP_HANDLER_PC, handler_pc,
+                                                         J2C_ATTRIBUTE_PROP_CATCH_TYPE, catch_type,
+                                                         NULL);
+                   g_ptr_array_add (exception_table, info);
+                }
+
+              guint16 attributes_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
+              GPtrArray *attributes = g_ptr_array_sized_new (attributes_count);
+              g_ptr_array_set_free_func (attributes, g_object_unref);
+              for (gint i = 0; i < attributes_count; i++)
+                {
+                  gpointer attribute = j2c_read_attribute(J2C_TYPE_ATTRIBUTE_CODE, in, cp, &tmp_error);
+                  if (tmp_error)
+                    {
+                      j2c_logger_warning ("Could not read attribute: %s.", tmp_error->message);
+                      g_error_free (tmp_error);
+                      tmp_error = NULL;
+                    }
+                  else
+                    {
+                      g_ptr_array_add (attributes, attribute);
+                    }
+                }
+
+              ret = g_object_new (J2C_TYPE_ATTRIBUTE_CODE,
+                                  J2C_ATTRIBUTE_PROP_MAX_STACK, max_stack,
+                                  J2C_ATTRIBUTE_PROP_MAX_LOCALS, max_locals,
+                                  J2C_ATTRIBUTE_PROP_CODE, code,
+                                  J2C_ATTRIBUTE_PROP_EXCEPTION_TABLE, exception_table,
+                                  J2C_ATTRIBUTE_PROP_ATTRIBUTES, attributes,
+                                  NULL);
+          }
+          else if (g_strcmp0 (name, J2C_EXCEPTIONS) == 0)
+            {
+              guint16 number_of_exceptions = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) goto end;
+
+              GArray *exception_index_table = g_array_sized_new (TRUE, FALSE, sizeof (guint16), number_of_exceptions);
+              for (gint i = 0; i < number_of_exceptions; i ++)
+                {
+                  guint16 index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error)
+                    {
+                      g_array_unref (exception_index_table);
+                      goto end;
+                    }
+
+                  g_array_append_val (exception_index_table, index);
+                }
+
+              ret = g_object_new (J2C_TYPE_ATTRIBUTE_EXCEPTIONS,
+                                  J2C_ATTRIBUTE_PROP_EXCEPTION_INDEX_TABLE, exception_index_table,
+                                  NULL);
+            }
+          else if (g_strcmp0 (name, J2C_RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS) == 0 || g_strcmp0 (name, J2C_RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS) == 0)
+            {
+              guint16 num_parameters = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) goto end;
+
+              GPtrArray *parameter_annotations = g_ptr_array_sized_new (num_parameters);
+              g_ptr_array_set_free_func (parameter_annotations, g_object_unref);
+              for (gint i = 0; i < num_parameters; i ++)
+                {
+                  guint16 num_annotations = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error)
+                    {
+                      g_ptr_array_unref (parameter_annotations);
+                      goto end;
+                    }
+                  GPtrArray *annotations = g_ptr_array_sized_new (num_annotations);
+                  g_ptr_array_set_free_func (annotations, g_object_unref);
+                  for (gint j = 0; j < num_annotations; j++)
+                    {
+                      J2cAnnotation *annotation = j2c_annotation_new_from_stream (in, &tmp_error);
+                      if (tmp_error)
+                        {
+                          g_ptr_array_unref (parameter_annotations);
+                          g_ptr_array_unref (annotations);
+                          goto end;
+                        }
+                      g_ptr_array_add (annotations, annotation);
+                    }
+                  J2cParameterAnnotations *annos = g_object_new (J2C_TYPE_PARAMETER_ANNOTATIONS,
+                                                                 J2C_ATTRIBUTE_PROP_ANNOTATIONS, annotations,
+                                                                 NULL);
+                  g_ptr_array_add (parameter_annotations, annos);
+                }
+                ret = g_object_new (g_strcmp0 (name, J2C_RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS) ?
+                                      J2C_TYPE_ATTRIBUTE_RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS : J2C_TYPE_ATTRIBUTE_RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS,
+                                    J2C_ATTRIBUTE_PROP_PARAMETER_ANNOTATIONS, parameter_annotations,
+                                    NULL);
+            }
         }
     }
 
+end:
   if (tmp_error) g_propagate_error (error, tmp_error);
   return ret;
 }
@@ -259,6 +390,9 @@ j2c_read_attribute (GType type, GDataInputStream *in, J2cConstantPool *cp, GErro
   GError *tmp_error = NULL;
   gchar *name = NULL;
   gpointer ret = NULL;
+  guint8 *data_buffer = NULL;
+  GInputStream *memory_input_stream = NULL;
+  GDataInputStream *data_in = NULL;
 
   guint16 name_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
@@ -268,41 +402,49 @@ j2c_read_attribute (GType type, GDataInputStream *in, J2cConstantPool *cp, GErro
   guint32 length = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
 
+  data_buffer = g_malloc (length);
+  if (length != g_input_stream_read (G_INPUT_STREAM (in), data_buffer, length, NULL, &tmp_error))
+    goto error;
+
+  memory_input_stream = g_memory_input_stream_new_from_data (data_buffer, length, NULL);
+  data_in = g_data_input_stream_new (memory_input_stream);
+  g_data_input_stream_set_byte_order (data_in, g_data_input_stream_get_byte_order (in));
+
   if (type == J2C_TYPE_COMPILATION_UNIT_CLASS)
     {
-      ret = j2c_read_attribute_class (name, in, length, &tmp_error);
+      ret = j2c_read_attribute_class (name, data_in, length, &tmp_error);
     }
   else if (type == J2C_TYPE_FIELD_INFO)
     {
-      ret = j2c_read_attribute_field (name, in, length, &tmp_error);
+      ret = j2c_read_attribute_field (name, data_in, length, &tmp_error);
     }
   else if (type == J2C_TYPE_METHOD_INFO)
     {
-      ret = j2c_read_attribute_method (name, in, length, &tmp_error);
+      ret = j2c_read_attribute_method (name, data_in, length, cp, &tmp_error);
     }
   else if (type == J2C_TYPE_ATTRIBUTE_CODE)
     {
-      ret = j2c_read_attribute_code (name, in, length, &tmp_error);
+      ret = j2c_read_attribute_code (name, data_in, length, &tmp_error);
     }
 
-  if (!ret)
-    {
-      g_input_stream_skip (G_INPUT_STREAM (in), length, NULL, &tmp_error);
-      if (tmp_error) goto error;
-
-      if (!tmp_error)
-        g_set_error (error,
-                     J2C_ATTRIBUTE_ERROR,
-                     J2C_UNKNOWN_ATTRIBUTE_ERROR,
-                     "Unknown attribute name \'%s\'",
-                     name);
-    }
+  if (!ret && !tmp_error)
+    g_set_error (error,
+                 J2C_ATTRIBUTE_ERROR,
+                 J2C_UNKNOWN_ATTRIBUTE_ERROR,
+                 "Unknown attribute name \'%s\'",
+                 name);
 
 error:
   if (tmp_error)
     g_propagate_error (error, tmp_error);
   if (name)
     g_free (name);
+  if (data_buffer)
+    g_free (data_buffer);
+  if (memory_input_stream)
+    g_object_unref (memory_input_stream);
+  if (data_in)
+    g_object_unref (data_in);
 
   return ret;
 }

@@ -5,6 +5,7 @@
 #include <j2c/attributes-class-file.h>
 #include <j2c/attributes-field-info.h>
 #include <j2c/attributes-method-info.h>
+#include <j2c/attributes-class-field-or-method.h>
 #include <j2c/constant-pool.h>
 
 #include <glib.h>
@@ -52,5 +53,16 @@ static gchar const *const J2C_ATTRIBUTE_PROP_PARAMETERS = "attribute-parameters"
 static gchar const *const J2C_ATTRIBUTE_PROP_DEFAULT_VALUE = "attribute-default-value";
 static gchar const *const J2C_ATTRIBUTE_PROP_NAME_INDEX = "attribute-name-index";
 static gchar const *const J2C_ATTRIBUTE_PROP_ACCESS_FLAGS = "attribute-access-flags";
+
+static gchar const *const J2C_ATTRIBUTE_PROP_TYPE_INDEX = "attribute-type-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_ELEMENT_VALUE_PAIRS = "attribute-element-value-pairs";
+static gchar const *const J2C_ATTRIBUTE_PROP_ELEMENT_NAME_INDEX = "attribute-element-name-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_VALUE = "attribute-value";
+static gchar const *const J2C_ATTRIBUTE_PROP_TAG = "attribute-tag";
+static gchar const *const J2C_ATTRIBUTE_PROP_TYPE_NAME_INDEX = "attribute-type-name-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_CONST_NAME_INDEX = "attribute-const-name-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_CLASS_INFO_INDEX = "attribue-class-info-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_ANNOTATION_VALUE = "attribute-annotation-value";
+static gchar const *const J2C_ATTRIBUTE_PROP_ARRAY_VALUE = "attribute-array_value";
 
 #endif // __ATTRIBUTES_H__

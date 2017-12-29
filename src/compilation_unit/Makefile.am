@@ -8,6 +8,7 @@ libcompilationunit_a_SOURCES = 	modified-utf8.c \
 				attributes-class-file.c \
 				attributes-field-info.c \
 				attributes-method-info.c \
+				attributes-class-field-or-method.c \
 				method-or-field-info.c
 						
 libcompilationunit_a_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GOBJECT_CFLAGS) \

@@ -26,9 +26,6 @@ G_DECLARE_FINAL_TYPE (J2cAttributeAnnotationDefault, j2c_attribute_annotation_de
 static gchar const *const J2C_ANNOTATION_DEFAULT = "AnnotationDefault";
 
 
-
-
-
 #define J2C_TYPE_EXCEPTION_INFO j2c_exception_info_get_type ()
 G_DECLARE_FINAL_TYPE (J2cExceptionInfo, j2c_exception_info, J2C, EXCEPTION_INFO, GObject)
 #define J2C_TYPE_PARAMETER_ANNOTATIONS j2c_parameter_annotations_get_type ()
