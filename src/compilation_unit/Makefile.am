@@ -8,6 +8,7 @@ libcompilationunit_a_SOURCES = 	modified-utf8.c \
 				attributes-class-file.c \
 				attributes-field-info.c \
 				attributes-method-info.c \
+				attributes-code.c \
 				attributes-class-field-or-method.c \
 				method-or-field-info.c
 						

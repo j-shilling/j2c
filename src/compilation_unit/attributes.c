@@ -406,9 +406,322 @@ j2c_read_attribute_code (gchar *name, GDataInputStream *in, const guint16 length
 
   if (!ret && !tmp_error)
     {
+      if (g_strcmp0 (name, J2C_LINE_NUMBER_TABLE) == 0)
+        {
+          guint16 line_number_table_length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+          if (tmp_error) goto end;
+          GPtrArray *line_number_table = g_ptr_array_sized_new (line_number_table_length);
+          g_ptr_array_set_free_func (line_number_table, g_object_unref);
+          for (gint i = 0; i < line_number_table_length; i++)
+            {
+              guint16 start_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (line_number_table); goto end; }
+              guint16 line_number = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (line_number_table); goto end; }
 
+              J2cLineNumber *entry = g_object_new (J2C_TYPE_LINE_NUMBER,
+                                                   J2C_ATTRIBUTE_PROP_START_PC, start_pc,
+                                                   J2C_ATTRIBUTE_PROP_LINE_NUMBER, line_number,
+                                                   NULL);
+              g_ptr_array_add (line_number_table, entry);
+            }
+           ret = g_object_new (J2C_TYPE_ATTRIBUTE_LINE_NUMBER_TABLE,
+                               J2C_ATTRIBUTE_PROP_LINE_NUMBER_TABLE, line_number_table,
+                               NULL);
+        }
+      else if (g_strcmp0 (name, J2C_LOCAL_VARIABLE_TABLE) == 0)
+        {
+          guint16 local_variable_table_length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+          if (tmp_error) goto end;
+          GPtrArray *local_variable_table = g_ptr_array_sized_new (local_variable_table_length);
+          g_ptr_array_set_free_func (local_variable_table, g_object_unref);
+          for (gint i = 0; i < local_variable_table_length; i++)
+            {
+              guint16 start_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_table); goto end; }
+              guint16 length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_table); goto end; }
+              guint16 name_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_table); goto end; }
+              guint16 descriptor_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_table); goto end; }
+              guint16 index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_table); goto end; }
+
+              J2cLocalVariable *entry = g_object_new (J2C_TYPE_LOCAL_VARIABLE,
+                                                      J2C_ATTRIBUTE_PROP_START_PC, start_pc,
+                                                      J2C_ATTRIBUTE_PROP_LENGTH, length,
+                                                      J2C_ATTRIBUTE_PROP_NAME_INDEX, name_index,
+                                                      J2C_ATTRIBUTE_PROP_DESCRIPTOR_INDEX, descriptor_index,
+                                                      J2C_ATTRIBUTE_PROP_INDEX, index,
+                                                      NULL);
+              g_ptr_array_add (local_variable_table, entry);
+            }
+          ret = g_object_new (J2C_TYPE_ATTRIBUTE_LOCAL_VARIABLE_TABLE,
+                              J2C_ATTRIBUTE_PROP_LOCAL_VARIABLE_TABLE, local_variable_table,
+                              NULL);
+        }
+      else if (g_strcmp0 (name, J2C_LOCAL_VARIABLE_TYPE_TABLE) == 0)
+        {
+          guint16 local_variable_type_table_length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+          if (tmp_error) goto end;
+          GPtrArray *local_variable_type_table = g_ptr_array_sized_new (local_variable_type_table_length);
+          g_ptr_array_set_free_func (local_variable_type_table, g_object_unref);
+          for (gint i = 0; i < local_variable_type_table_length; i++)
+            {
+              guint16 start_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_type_table); goto end; }
+              guint16 length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_type_table); goto end; }
+              guint16 name_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_type_table); goto end; }
+              guint16 signature_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_type_table); goto end; }
+              guint16 index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (local_variable_type_table); goto end; }
+
+              J2cLocalVariable *entry = g_object_new (J2C_TYPE_LOCAL_VARIABLE_TYPE,
+                                                      J2C_ATTRIBUTE_PROP_START_PC, start_pc,
+                                                      J2C_ATTRIBUTE_PROP_LENGTH, length,
+                                                      J2C_ATTRIBUTE_PROP_NAME_INDEX, name_index,
+                                                      J2C_ATTRIBUTE_PROP_SIGNATURE_INDEX, signature_index,
+                                                      J2C_ATTRIBUTE_PROP_INDEX, index,
+                                                      NULL);
+              g_ptr_array_add (local_variable_type_table, entry);
+            }
+          ret = g_object_new (J2C_TYPE_ATTRIBUTE_LOCAL_VARIABLE_TABLE,
+                              J2C_ATTRIBUTE_PROP_LOCAL_VARIABLE_TABLE, local_variable_type_table,
+                              NULL);
+        }
+      else if (g_strcmp0 (name, J2C_STACK_MAP_TABLE) == 0)
+        {
+          guint16 number_of_entries = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+          if (tmp_error) goto end;
+          GPtrArray *entries = g_ptr_array_sized_new (number_of_entries);
+          g_ptr_array_set_free_func (entries, g_object_unref);
+          for (gint i = 0; i < number_of_entries; i ++)
+            {
+              guint8 tag = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (entries); goto end; }
+
+              if (tag >= 0 && tag <= 63) /* SAME_FRAME */
+                {
+                  J2cStackMapFrame *frame = g_object_new (J2C_TYPE_STACK_MAP_FRAME,
+                                                          J2C_ATTRIBUTE_PROP_TAG, tag,
+                                                          NULL);
+                  g_ptr_array_add (entries, frame);
+                }
+              else if (tag >= 64 && tag <= 127) /* SAME_LOCALS_1_STACK_ITEM_FRAME */
+                {
+                  GPtrArray *stack = g_ptr_array_sized_new (1);
+                  g_ptr_array_set_free_func (stack, g_object_unref);
+                  guint8 verification_tag = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (stack); goto end; }
+
+                  if (verification_tag == 7 || verification_tag == 8) /* ITEM_Object || ITEM_Unititialized */
+                    {
+                      guint16 index_or_offset = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                      if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (stack); goto end; }
+
+                      J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                    J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                    tag == 7 ?
+                                                                      J2C_ATTRIBUTE_PROP_CPOOL_INDEX : J2C_ATTRIBUTE_PROP_OFFSET,
+                                                                    index_or_offset,
+                                                                    NULL);
+                      g_ptr_array_add (stack, info);
+                    }
+                  else
+                    {
+                      J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                    J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                    NULL);
+                      g_ptr_array_add (stack, info);
+                    }
+
+                  J2cStackMapFrame *frame = g_object_new (J2C_TYPE_STACK_MAP_FRAME,
+                                                          J2C_ATTRIBUTE_PROP_TAG, tag,
+                                                          J2C_ATTRIBUTE_PROP_STACK, stack,
+                                                          NULL);
+                  g_ptr_array_add (entries, frame);
+                }
+              else if (tag == 247) /* SAME_LOCALS_1_STACK_ITEM_FRAME_EXTENDED */
+                {
+                  guint16 offset_delta = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (entries); goto end; }
+                  GPtrArray *stack = g_ptr_array_sized_new (1);
+                  g_ptr_array_set_free_func (stack, g_object_unref);
+                  guint8 verification_tag = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (stack); goto end; }
+
+                  if (verification_tag == 7 || verification_tag == 8) /* ITEM_Object || ITEM_Unititialized */
+                    {
+                      guint16 index_or_offset = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                      if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (stack); goto end; }
+
+                      J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                    J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                    tag == 7 ?
+                                                                      J2C_ATTRIBUTE_PROP_CPOOL_INDEX : J2C_ATTRIBUTE_PROP_OFFSET,
+                                                                    index_or_offset,
+                                                                    NULL);
+                      g_ptr_array_add (stack, info);
+                    }
+                  else
+                    {
+                      J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                    J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                    NULL);
+                      g_ptr_array_add (stack, info);
+                    }
+
+                  J2cStackMapFrame *frame = g_object_new (J2C_TYPE_STACK_MAP_FRAME,
+                                                          J2C_ATTRIBUTE_PROP_TAG, tag,
+                                                          J2C_ATTRIBUTE_PROP_OFFSET_DELTA, offset_delta,
+                                                          J2C_ATTRIBUTE_PROP_STACK, stack,
+                                                          NULL);
+                  g_ptr_array_add (entries, frame);
+                }
+              else if ((tag >= 248 && tag <= 250) || tag == 251)/* CHOP_FAME || SAME_FRAME_EXTENED */
+                {
+                  guint16 offset_delta = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (entries); goto end; }
+                  J2cStackMapFrame *frame = g_object_new (J2C_TYPE_STACK_MAP_FRAME,
+                                                          J2C_ATTRIBUTE_PROP_TAG, tag,
+                                                          J2C_ATTRIBUTE_PROP_OFFSET_DELTA, offset_delta,
+                                                          NULL);
+                  g_ptr_array_add (entries, frame);
+                }
+              else if (tag >= 252 && tag <= 254) /* APPEND_FRAME */
+                {
+                  guint16 offset_delta = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (entries); goto end; }
+
+                  guint16 number_of_locals = tag - 251;
+
+                  GPtrArray *locals = g_ptr_array_sized_new (number_of_locals);
+                  g_ptr_array_set_free_func (locals, g_object_unref);
+
+                  for (gint i = 0; i < number_of_locals; i++)
+                    {
+                      guint8 verification_tag = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+                      if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (locals); goto end; }
+
+                      if (verification_tag == 7 || verification_tag == 8) /* ITEM_Object || ITEM_Unititialized */
+                        {
+                          guint16 index_or_offset = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                          if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (locals); goto end; }
+
+                          J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                        J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                        tag == 7 ?
+                                                                          J2C_ATTRIBUTE_PROP_CPOOL_INDEX : J2C_ATTRIBUTE_PROP_OFFSET,
+                                                                        index_or_offset,
+                                                                        NULL);
+                          g_ptr_array_add (locals, info);
+                        }
+                      else
+                        {
+                          J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                        J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                        NULL);
+                          g_ptr_array_add (locals, info);
+                        }
+                    }
+
+                  J2cStackMapFrame *frame = g_object_new (J2C_TYPE_STACK_MAP_FRAME,
+                                                          J2C_ATTRIBUTE_PROP_TAG, tag,
+                                                          J2C_ATTRIBUTE_PROP_OFFSET_DELTA, offset_delta,
+                                                          J2C_ATTRIBUTE_PROP_LOCALS, locals,
+                                                          NULL);
+                  g_ptr_array_add (entries, frame);
+                }
+              else if (tag == 255) /* FULL_FRAME */
+                {
+                  guint16 offset_delta = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (entries); goto end; }
+
+                  guint16 number_of_locals = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (entries); goto end; }
+
+                  GPtrArray *locals = g_ptr_array_sized_new (number_of_locals);
+                  g_ptr_array_set_free_func (locals, g_object_unref);
+
+                  for (gint i = 0; i < number_of_locals; i++)
+                    {
+                      guint8 verification_tag = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+                      if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (locals); goto end; }
+
+                      if (verification_tag == 7 || verification_tag == 8) /* ITEM_Object || ITEM_Unititialized */
+                        {
+                          guint16 index_or_offset = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                          if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (locals); goto end; }
+
+                          J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                        J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                        tag == 7 ?
+                                                                          J2C_ATTRIBUTE_PROP_CPOOL_INDEX : J2C_ATTRIBUTE_PROP_OFFSET,
+                                                                        index_or_offset,
+                                                                        NULL);
+                          g_ptr_array_add (locals, info);
+                        }
+                      else
+                        {
+                          J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                        J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                        NULL);
+                          g_ptr_array_add (locals, info);
+                        }
+                    }
+
+                  guint16 number_of_stack_items = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (locals); goto end; }
+
+                  GPtrArray *stack = g_ptr_array_sized_new (number_of_stack_items);
+                  g_ptr_array_set_free_func (stack, g_object_unref);
+
+                  for (gint i = 0; i < number_of_stack_items; i++)
+                    {
+                      guint8 verification_tag = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+                      if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (stack); g_ptr_array_unref (locals); goto end; }
+
+                      if (verification_tag == 7 || verification_tag == 8) /* ITEM_Object || ITEM_Unititialized */
+                        {
+                          guint16 index_or_offset = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                          if (tmp_error) { g_ptr_array_unref (entries); g_ptr_array_unref (stack); g_ptr_array_unref (locals); goto end; }
+
+                          J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                        J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                        tag == 7 ?
+                                                                          J2C_ATTRIBUTE_PROP_CPOOL_INDEX : J2C_ATTRIBUTE_PROP_OFFSET,
+                                                                        index_or_offset,
+                                                                        NULL);
+                          g_ptr_array_add (stack, info);
+                        }
+                      else
+                        {
+                          J2cVerificationTypeInfo *info = g_object_new (J2C_TYPE_VERIFICATION_TYPE_INFO,
+                                                                        J2C_ATTRIBUTE_PROP_TAG, verification_tag,
+                                                                        NULL);
+                          g_ptr_array_add (stack, info);
+                        }
+                    }
+
+                  J2cStackMapFrame *frame = g_object_new (J2C_TYPE_STACK_MAP_FRAME,
+                                                          J2C_ATTRIBUTE_PROP_TAG, tag,
+                                                          J2C_ATTRIBUTE_PROP_OFFSET_DELTA, offset_delta,
+                                                          J2C_ATTRIBUTE_PROP_LOCALS, locals,
+                                                          J2C_ATTRIBUTE_PROP_STACK, stack,
+                                                          NULL);
+                  g_ptr_array_add (entries, frame);
+                }
+            }
+          ret = g_object_new (J2C_TYPE_ATTRIBUTE_STACK_MAP_TABLE,
+                              J2C_ATTRIBUTE_PROP_ENTRIES, entries,
+                              NULL);
+        }
     }
-
+end:
   if (tmp_error) g_propagate_error (error, tmp_error);
   return ret;
 }

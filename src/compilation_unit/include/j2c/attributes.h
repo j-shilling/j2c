@@ -5,6 +5,7 @@
 #include <j2c/attributes-class-file.h>
 #include <j2c/attributes-field-info.h>
 #include <j2c/attributes-method-info.h>
+#include <j2c/attributes-code.h>
 #include <j2c/attributes-class-field-or-method.h>
 #include <j2c/constant-pool.h>
 
@@ -64,5 +65,20 @@ static gchar const *const J2C_ATTRIBUTE_PROP_CONST_NAME_INDEX = "attribute-const
 static gchar const *const J2C_ATTRIBUTE_PROP_CLASS_INFO_INDEX = "attribue-class-info-index";
 static gchar const *const J2C_ATTRIBUTE_PROP_ANNOTATION_VALUE = "attribute-annotation-value";
 static gchar const *const J2C_ATTRIBUTE_PROP_ARRAY_VALUE = "attribute-array_value";
+
+static gchar const *const J2C_ATTRIBUTE_PROP_LINE_NUMBER_TABLE = "attribute-line-number-table";
+static gchar const *const J2C_ATTRIBUTE_PROP_LINE_NUMBER = "attribute-line-number";
+static gchar const *const J2C_ATTRIBUTE_PROP_LOCAL_VARIABLE_TABLE = "attribute-local-variable-table";
+static gchar const *const J2C_ATTRIBUTE_PROP_LENGTH = "attribute-length";
+static gchar const *const J2C_ATTRIBUTE_PROP_DESCRIPTOR_INDEX = "attribute-descriptor-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_INDEX = "attribute-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_SIGNATURE_INDEX = "attribute-signature-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_LOCAL_VARIABLE_TYPE_TABLE = "attribute-local-variable-type-table";
+static gchar const *const J2C_ATTRIBUTE_PROP_ENTRIES = "attribute-entries";
+static gchar const *const J2C_ATTRIBUTE_PROP_OFFSET_DELTA = "attribute-offset-delta";
+static gchar const *const J2C_ATTRIBUTE_PROP_LOCALS = "attribute-locals";
+static gchar const *const J2C_ATTRIBUTE_PROP_STACK = "attribute-stack";
+static gchar const *const J2C_ATTRIBUTE_PROP_CPOOL_INDEX = "attribute-cpool-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_OFFSET = "attribute-offset";
 
 #endif // __ATTRIBUTES_H__
