@@ -86,7 +86,7 @@ struct _J2cAttributeAnnotationDefault
 {
   GObject parent;
 
-  GBytes *default_value;
+  J2cElementValue *default_value;
 };
 
 G_DEFINE_TYPE (J2cAttributeAnnotationDefault, j2c_attribute_annotation_default, G_TYPE_OBJECT)
@@ -342,11 +342,11 @@ j2c_attribute_annotation_default_class_init (J2cAttributeAnnotationDefaultClass 
   object_class->dispose      = j2c_attribute_annotation_default_dispose;
 
   g_object_class_install_property (object_class, PROP_DEFAULT_VALUE,
-				   g_param_spec_boxed (J2C_ATTRIBUTE_PROP_DEFAULT_VALUE,
-						      J2C_ATTRIBUTE_PROP_DEFAULT_VALUE,
-						      "",
-						      G_TYPE_PTR_ARRAY,
-						      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+				   g_param_spec_object (J2C_ATTRIBUTE_PROP_DEFAULT_VALUE,
+						                J2C_ATTRIBUTE_PROP_DEFAULT_VALUE,
+                                        "",
+						                J2C_TYPE_ELEMENT_VALUE,
+						                G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void j2c_attribute_code_init (J2cAttributeCode* self) { return; }
@@ -464,8 +464,7 @@ j2c_attribute_annotation_default_dispose (GObject *object)
 
   if (self->default_value)
     {
-      g_bytes_unref (self->default_value);
-      self->default_value = NULL;
+      g_clear_object (&self->default_value);
     }
 
   G_OBJECT_CLASS (j2c_attribute_annotation_default_parent_class)->dispose (object);
@@ -669,11 +668,10 @@ j2c_attribute_annotation_default_set_property (GObject *object, guint property_i
     {
     case PROP_DEFAULT_VALUE:
       if (self->default_value)
-	{
-	  g_bytes_unref (self->default_value);
-	  self->default_value = NULL;
-	}
-      self->default_value = g_value_get_boxed (value);
+        {
+          g_object_unref (self->default_value);
+        }
+      self->default_value = g_value_dup_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -832,7 +830,7 @@ j2c_attribute_annotation_default_get_property (GObject *object, guint property_i
   switch (property_id)
     {
     case PROP_DEFAULT_VALUE:
-      g_value_set_boxed (value, self->default_value);
+      g_value_set_object (value, self->default_value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

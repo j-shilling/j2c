@@ -352,6 +352,39 @@ j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 leng
                                     J2C_ATTRIBUTE_PROP_PARAMETER_ANNOTATIONS, parameter_annotations,
                                     NULL);
             }
+          else if (g_strcmp0 (name, J2C_ANNOTATION_DEFAULT) == 0)
+            {
+              J2cElementValue *default_value = j2c_element_value_new_from_stream(in, &tmp_error);
+              if (tmp_error) goto end;
+
+              ret = g_object_new (J2C_TYPE_ATTRIBUTE_ANNOTATION_DEFAULT,
+                                  J2C_ATTRIBUTE_PROP_DEFAULT_VALUE, default_value,
+                                  NULL);
+            }
+          else if (g_strcmp0 (name, J2C_METHOD_PARAMETERS) == 0)
+            {
+              guint16 parameters_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) goto end;
+
+              GPtrArray *parameters = g_ptr_array_sized_new (parameters_count);
+              g_ptr_array_set_free_func (parameters, g_object_unref);
+              for (gint i = 0; i < parameters_count; i ++)
+                {
+                  guint16 name_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (parameters); goto end; }
+                  guint16 access_flags = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (parameters); goto end; }
+
+                  J2cParameter *parameter = g_object_new (J2C_TYPE_PARAMETER,
+                                                          J2C_ATTRIBUTE_PROP_NAME_INDEX, name_index,
+                                                          J2C_ATTRIBUTE_PROP_ACCESS_FLAGS, access_flags,
+                                                          NULL);
+                  g_ptr_array_add (parameters, parameter);
+                }
+              ret = g_object_new (J2C_TYPE_ATTRIBUTE_METHOD_PARAMETERS,
+                                  J2C_ATTRIBUTE_PROP_PARAMETERS, parameters,
+                                  NULL);
+            }
         }
     }
 
