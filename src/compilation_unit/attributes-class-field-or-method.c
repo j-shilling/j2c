@@ -1,5 +1,43 @@
 #include <j2c/attributes.h>
 
+struct _J2cAttributeSynthetic
+{
+  GObject parent;
+};
+
+G_DEFINE_TYPE (J2cAttributeSynthetic, j2c_attribute_synthetic, G_TYPE_OBJECT)
+
+struct _J2cAttributeDeprecated
+{
+  GObject parent;
+};
+
+G_DEFINE_TYPE(J2cAttributeDeprecated, j2c_attribute_deprecated, G_TYPE_OBJECT)
+
+struct _J2cAttributeSignature
+{
+  GObject parent;
+  guint16 signature_index;
+};
+
+G_DEFINE_TYPE(J2cAttributeSignature, j2c_attribute_signature, G_TYPE_OBJECT)
+
+struct _J2cAttributeRuntimeVisibleAnnotations
+{
+  GObject parent;
+  GPtrArray *annotations; /* J2cAnnotation[] */
+};
+
+G_DEFINE_TYPE (J2cAttributeRuntimeVisibleAnnotations, j2c_attribute_runtime_visible_annotations, G_TYPE_OBJECT)
+
+struct _J2cAttributeRuntimeInvisibleAnnotations
+{
+  GObject parent;
+  GPtrArray *annotations; /* J2cAnnotation[] */
+};
+
+G_DEFINE_TYPE (J2cAttributeRuntimeInvisibleAnnotations, j2c_attribute_runtime_invisible_annotations, G_TYPE_OBJECT)
+
 struct _J2cAnnotation
 {
   GObject parent;
@@ -8,6 +46,8 @@ struct _J2cAnnotation
   GPtrArray *element_value_pairs; /* J2cElementValuePair[] */
 };
 
+G_DEFINE_TYPE(J2cAnnotation, j2c_annotation, G_TYPE_OBJECT)
+
 struct _J2cElementValuePair
 {
   GObject parent;
@@ -15,6 +55,8 @@ struct _J2cElementValuePair
   guint16 element_name_index;
   J2cElementValue *value;
 };
+
+G_DEFINE_TYPE(J2cElementValuePair, j2c_element_value_pair, G_TYPE_OBJECT)
 
 struct _J2cElementValue
 {
@@ -56,8 +98,6 @@ struct _J2cElementValue
     };
 };
 
-G_DEFINE_TYPE(J2cAnnotation, j2c_annotation, G_TYPE_OBJECT)
-G_DEFINE_TYPE(J2cElementValuePair, j2c_element_value_pair, G_TYPE_OBJECT)
 G_DEFINE_TYPE(J2cElementValue, j2c_element_value, G_TYPE_OBJECT)
 
 enum
@@ -72,21 +112,31 @@ enum
   PROP_CONST_NAME_INDEX,
   PROP_CLASS_INFO_INDEX,
   PROP_ANNOTATION_VALUE,
-  PROP_ARRAY_VALUE
+  PROP_ARRAY_VALUE,
+  PROP_SIGNATURE_INDEX,
+  PROP_ANNOTATIONS
 };
 
 /****
   PRIVATE METHOD PROTOTYPES
  ****/
 
+static void j2c_attribute_runtime_visible_annotations_dispose (GObject *object);
+static void j2c_attribute_runtime_invisible_annotations_dispose (GObject *object);
 static void j2c_annotation_dispose (GObject *object);
 static void j2c_element_value_pair_dispose (GObject *object);
 static void j2c_element_value_dispose (GObject *object);
 
+static void j2c_attribute_signature_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
+static void j2c_attribute_runtime_visible_annotations_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
+static void j2c_attribute_runtime_invisible_annotations_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
 static void j2c_annotation_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
 static void j2c_element_value_pair_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
 static void j2c_element_value_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
 
+static void j2c_attribute_signature_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
+static void j2c_attribute_runtime_visible_annotations_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
+static void j2c_attribute_runtime_invisible_annotations_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
 static void j2c_annotation_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
 static void j2c_element_value_pair_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
 static void j2c_element_value_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
@@ -238,6 +288,66 @@ end:
 }
 
 static void
+j2c_attribute_synthetic_class_init (J2cAttributeSyntheticClass *klass)
+{
+  return;
+}
+
+static void
+j2c_attribute_deprecated_class_init (J2cAttributeDeprecatedClass *klass)
+{
+  return;
+}
+
+static void
+j2c_attribute_signature_class_init (J2cAttributeSignatureClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+  object_class->set_property = j2c_attribute_signature_set_property;
+  object_class->get_property = j2c_attribute_signature_get_property;
+
+  g_object_class_install_property (object_class, PROP_SIGNATURE_INDEX,
+                                   g_param_spec_uint (J2C_ATTRIBUTE_PROP_SIGNATURE_INDEX,
+                                                      J2C_ATTRIBUTE_PROP_SIGNATURE_INDEX,
+                                                      "",
+                                                      0, G_MAXUINT16,
+                                                      0,
+                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+}
+
+static void
+j2c_attribute_runtime_visible_annotations_class_init (J2cAttributeRuntimeVisibleAnnotationsClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+  object_class->set_property = j2c_attribute_runtime_visible_annotations_set_property;
+  object_class->get_property = j2c_attribute_runtime_visible_annotations_get_property;
+  object_class->dispose      = j2c_attribute_runtime_visible_annotations_dispose;
+
+  g_object_class_install_property (object_class, PROP_ANNOTATIONS,
+                                   g_param_spec_boxed (J2C_ATTRIBUTE_PROP_ANNOTATIONS,
+                                                       J2C_ATTRIBUTE_PROP_ANNOTATIONS,
+                                                       "",
+                                                       G_TYPE_PTR_ARRAY,
+                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+}
+
+static void
+j2c_attribute_runtime_invisible_annotations_class_init (J2cAttributeRuntimeInvisibleAnnotationsClass *klass)
+{
+  GObjectClass *object_class = G_OBJECT_CLASS (klass);
+  object_class->set_property = j2c_attribute_runtime_invisible_annotations_set_property;
+  object_class->get_property = j2c_attribute_runtime_invisible_annotations_get_property;
+  object_class->dispose      = j2c_attribute_runtime_invisible_annotations_dispose;
+
+  g_object_class_install_property (object_class, PROP_ANNOTATIONS,
+                                   g_param_spec_boxed (J2C_ATTRIBUTE_PROP_ANNOTATIONS,
+                                                       J2C_ATTRIBUTE_PROP_ANNOTATIONS,
+                                                       "",
+                                                       G_TYPE_PTR_ARRAY,
+                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+}
+
+static void
 j2c_annotation_class_init (J2cAnnotationClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
@@ -340,6 +450,11 @@ j2c_element_value_class_init (J2cElementValueClass *klass)
                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
+static void j2c_attribute_synthetic_init (J2cAttributeSynthetic *self) { return; }
+static void j2c_attribute_deprecated_init (J2cAttributeDeprecated *self) { return; }
+static void j2c_attribute_signature_init (J2cAttributeSignature *self) { return; }
+static void j2c_attribute_runtime_visible_annotations_init (J2cAttributeRuntimeVisibleAnnotations *self) { return; }
+static void j2c_attribute_runtime_invisible_annotations_init (J2cAttributeRuntimeInvisibleAnnotations *self) { return; }
 static void j2c_annotation_init (J2cAnnotation *self) { return; }
 static void j2c_element_value_pair_init (J2cElementValuePair *self) { return; }
 static void j2c_element_value_init (J2cElementValue *self) { return; }
@@ -347,6 +462,34 @@ static void j2c_element_value_init (J2cElementValue *self) { return; }
 /****
   DESTRUCTION METHODS
  ****/
+
+static void
+j2c_attribute_runtime_visible_annotations_dispose (GObject *object)
+{
+  J2cAttributeRuntimeVisibleAnnotations *self = J2C_ATTRIBUTE_RUNTIME_VISIBLE_ANNOTATIONS (object);
+
+  if (self->annotations)
+    {
+      g_ptr_array_unref (self->annotations);
+      self->annotations = NULL;
+    }
+
+  G_OBJECT_CLASS (j2c_attribute_runtime_visible_annotations_parent_class)->dispose (object);
+}
+
+static void
+j2c_attribute_runtime_invisible_annotations_dispose (GObject *object)
+{
+  J2cAttributeRuntimeInvisibleAnnotations *self = J2C_ATTRIBUTE_RUNTIME_INVISIBLE_ANNOTATIONS (object);
+
+  if (self->annotations)
+    {
+      g_ptr_array_unref (self->annotations);
+      self->annotations = NULL;
+    }
+
+  G_OBJECT_CLASS (j2c_attribute_runtime_invisible_annotations_parent_class)->dispose (object);
+}
 
 static void
 j2c_annotation_dispose (GObject *object)
@@ -400,6 +543,58 @@ j2c_element_value_dispose (GObject *object)
 /****
   GETTERS AND SETTERS
  ****/
+
+static void
+j2c_attribute_signature_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cAttributeSignature *self = J2C_ATTRIBUTE_SIGNATURE (object);
+
+  switch (property_id)
+    {
+      case PROP_SIGNATURE_INDEX:
+        self->signature_index = g_value_get_uint (value);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+j2c_attribute_runtime_visible_annotations_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cAttributeRuntimeVisibleAnnotations *self = J2C_ATTRIBUTE_RUNTIME_VISIBLE_ANNOTATIONS (object);
+
+  switch (property_id)
+    {
+      case PROP_ANNOTATIONS:
+        if (self->annotations)
+          g_ptr_array_unref (self->annotations);
+        self->annotations = g_value_get_boxed (value);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+j2c_attribute_runtime_invisible_annotations_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
+{
+  J2cAttributeRuntimeInvisibleAnnotations *self = J2C_ATTRIBUTE_RUNTIME_INVISIBLE_ANNOTATIONS (object);
+
+  switch (property_id)
+    {
+      case PROP_ANNOTATIONS:
+        if (self->annotations)
+          g_ptr_array_unref (self->annotations);
+        self->annotations = g_value_get_boxed (value);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
 
 static void
 j2c_annotation_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
@@ -469,6 +664,54 @@ j2c_element_value_set_property (GObject *object, guint property_id, const GValue
         if (self->array_value)
           g_ptr_array_unref (self->array_value);
         self->array_value = g_value_get_boxed (value);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+j2c_attribute_signature_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cAttributeSignature *self = J2C_ATTRIBUTE_SIGNATURE (object);
+
+  switch (property_id)
+    {
+      case PROP_SIGNATURE_INDEX:
+        g_value_set_uint (value, self->signature_index);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+j2c_attribute_runtime_visible_annotations_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cAttributeRuntimeVisibleAnnotations *self = J2C_ATTRIBUTE_RUNTIME_VISIBLE_ANNOTATIONS (object);
+
+  switch (property_id)
+    {
+      case PROP_ANNOTATIONS:
+        g_value_set_boxed (value, self->annotations);
+        break;
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+j2c_attribute_runtime_invisible_annotations_get_property (GObject *object, guint property_id, GValue *value, GParamSpec *pspec)
+{
+  J2cAttributeRuntimeInvisibleAnnotations *self = J2C_ATTRIBUTE_RUNTIME_INVISIBLE_ANNOTATIONS (object);
+
+  switch (property_id)
+    {
+      case PROP_ANNOTATIONS:
+        g_value_set_boxed (value, self->annotations);
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

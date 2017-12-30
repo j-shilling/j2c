@@ -30,9 +30,45 @@ j2c_read_attribute_class_field_or_method (gchar *name, GDataInputStream *in, con
 
   if (!ret && !tmp_error)
     {
+      if (g_strcmp0 (name, J2C_SYNTHETIC) == 0)
+        {
+          ret = g_object_new (J2C_TYPE_ATTRIBUTE_SYNTHETIC, NULL);
+        }
+      else if (g_strcmp0 (name, J2C_DEPRECATED) == 0)
+        {
+          ret = g_object_new (J2C_TYPE_ATTRIBUTE_DEPRECATED, NULL);
+        }
+      else if (g_strcmp0 (name, J2C_SIGNATURE) == 0)
+        {
+          guint16 signature_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+          if (tmp_error) goto end;
 
+          ret = g_object_new (J2C_TYPE_ATTRIBUTE_SIGNATURE,
+                              J2C_ATTRIBUTE_PROP_SIGNATURE_INDEX, signature_index,
+                              NULL);
+        }
+      else if (g_strcmp0 (name, J2C_RUNTIME_VISIBLE_ANNOTATIONS) == 0 || g_strcmp0 (name, J2C_RUNTIME_INVISIBLE_ANNOTATIONS) == 0)
+        {
+          guint16 num_annotations = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+          if (tmp_error) goto end;
+
+          GPtrArray *annotations = g_ptr_array_sized_new (num_annotations);
+          g_ptr_array_set_free_func (annotations, g_object_unref);
+          for (gint i = 0; i < num_annotations; i ++)
+            {
+              J2cAnnotation *annotation = j2c_annotation_new_from_stream(in, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+              g_ptr_array_add (annotations, annotation);
+            }
+          ret = g_object_new (g_strcmp0 (name, J2C_RUNTIME_VISIBLE_ANNOTATIONS) == 0 ?
+                                J2C_TYPE_ATTRIBUTE_RUNTIME_VISIBLE_ANNOTATIONS : J2C_TYPE_ATTRIBUTE_RUNTIME_INVISIBLE_ANNOTATIONS,
+                              J2C_ATTRIBUTE_PROP_ANNOTATIONS, annotations,
+                              NULL);
+        }
     }
 
+end:
   if (tmp_error) g_propagate_error (error, tmp_error);
   return ret;
 }
