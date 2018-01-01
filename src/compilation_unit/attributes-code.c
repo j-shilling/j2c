@@ -402,7 +402,7 @@ j2c_verification_type_info_class_init (J2cVerificationTypeInfoClass *klass)
                                    g_param_spec_uint (J2C_ATTRIBUTE_PROP_OFFSET,
                                                       J2C_ATTRIBUTE_PROP_OFFSET,
                                                       "",
-                                                      0, G_MAXUINT8,
+                                                      0, G_MAXUINT16,
                                                       0,
                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
