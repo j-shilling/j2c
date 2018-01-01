@@ -7,6 +7,7 @@
 #include <j2c/attributes-method-info.h>
 #include <j2c/attributes-code.h>
 #include <j2c/attributes-class-field-or-method.h>
+#include <j2c/attributes-any.h>
 #include <j2c/constant-pool.h>
 
 #include <glib.h>
@@ -80,5 +81,21 @@ static gchar const *const J2C_ATTRIBUTE_PROP_LOCALS = "attribute-locals";
 static gchar const *const J2C_ATTRIBUTE_PROP_STACK = "attribute-stack";
 static gchar const *const J2C_ATTRIBUTE_PROP_CPOOL_INDEX = "attribute-cpool-index";
 static gchar const *const J2C_ATTRIBUTE_PROP_OFFSET = "attribute-offset";
+
+static gchar const *const J2C_ATTRIBUTE_PROP_TYPE_ANNOTATIONS = "attribute-type-annotations";
+static gchar const *const J2C_ATTRIBUTE_PROP_TARGET_TYPE = "attribute-target-type";
+static gchar const *const J2C_ATTRIBUTE_PROP_SUPERTYPE_INDEX = "attribute-supertype-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_TYPE_PARAMETER_INDEX = "attribute-type-parameter-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_BOUND_INDEX = "attribute-bound-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_FORMAL_PARAMETER_INDEX = "attribute-formal-parameter-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_THROWS_TYPE_INDEX = "attribute-throws-type-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_LOCALVAR_TARGET = "attribute-localvar-target";
+static gchar const *const J2C_ATTRIBUTE_PROP_EXCEPTION_TABLE_INDEX = "attribute-exception-table-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_TYPE_ARGUMENT_INDEX = "attribute-argument-index";
+static gchar const *const J2C_ATTRIBUTE_PROP_TARGET_PATH = "attribute-target-path";
+static gchar const *const J2C_ATTRIBUTE_PROP_PATH = "attribute-path";
+static gchar const *const J2C_ATTRIBUTE_PROP_TYPE_PATH_KIND = "attribute-path-kind";
+static gchar const *const J2C_ATTRIBUTE_PROP_TARGET_INFO = "attribute-target-info";
+
 
 #endif // __ATTRIBUTES_H__

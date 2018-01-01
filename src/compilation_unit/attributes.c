@@ -11,10 +11,205 @@ j2c_read_attribute_any (gchar *name, GDataInputStream *in, const guint16 length,
   g_return_val_if_fail (name != NULL && *name != '\0', NULL);
   g_return_val_if_fail (in != NULL, NULL);
 
+  gpointer ret = NULL;
   GError *tmp_error = NULL;
 
+  if (g_strcmp0 (name, J2C_RUNTIME_VISIBLE_TYPE_ANNOTATIONS) == 0 || g_strcmp0 (name, J2C_RUNTIME_INVISIBLE_TYPE_ANNOTATIONS) == 0)
+    {
+      guint16 num_annotations = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+      if (tmp_error) goto end;
+
+      GPtrArray *annotations = g_ptr_array_sized_new (num_annotations);
+      g_ptr_array_set_free_func (annotations, g_object_unref);
+
+      for (gint i = 0; i < num_annotations; i ++)
+        {
+          J2cTargetInfo *target_info = NULL;
+
+          guint8 target_type = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+          if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+          if (target_type <= 0x01) /* type_parameter_target */
+            {
+              guint8 type_parameter_index = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+              target_info = g_object_new (J2C_TYPE_TARGET_INFO,
+                                          J2C_ATTRIBUTE_PROP_TARGET_TYPE, target_type,
+                                          J2C_ATTRIBUTE_PROP_TYPE_PARAMETER_INDEX, type_parameter_index,
+                                          NULL);
+            }
+          else if (target_type == 0x10) /* supertype_target */
+            {
+              guint16 supertype_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+              target_info = g_object_new (J2C_TYPE_TARGET_INFO,
+                                          J2C_ATTRIBUTE_PROP_TARGET_TYPE, target_type,
+                                          J2C_ATTRIBUTE_PROP_SUPERTYPE_INDEX, supertype_index,
+                                          NULL);
+            }
+          else if (target_type >= 0x11 && target_type <= 0x12) /* type_parameter_bound_target */
+            {
+              guint8 type_parameter_index = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+              guint8 bound_index = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+              target_info = g_object_new (J2C_TYPE_TARGET_INFO,
+                                          J2C_ATTRIBUTE_PROP_TARGET_TYPE, target_type,
+                                          J2C_ATTRIBUTE_PROP_TYPE_PARAMETER_INDEX, type_parameter_index,
+                                          J2C_ATTRIBUTE_PROP_BOUND_INDEX, bound_index,
+                                          NULL);
+            }
+          else if (target_type >= 0x13 && target_type <= 0x15) /* empty_target */
+            {
+              /* Do Nothing */
+            }
+          else if (target_type == 0x16) /* formal_parameter_target */
+            {
+              guint8 formal_parameter_index = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+              target_info = g_object_new (J2C_TYPE_TARGET_INFO,
+                                          J2C_ATTRIBUTE_PROP_TARGET_TYPE, target_type,
+                                          J2C_ATTRIBUTE_PROP_FORMAL_PARAMETER_INDEX, formal_parameter_index,
+                                          NULL);
+            }
+          else if (target_type == 0x17) /* throws_target */
+            {
+              guint16 throws_type_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+              target_info = g_object_new (J2C_TYPE_TARGET_INFO,
+                                          J2C_ATTRIBUTE_PROP_TARGET_TYPE, target_type,
+                                          J2C_ATTRIBUTE_PROP_THROWS_TYPE_INDEX, throws_type_index,
+                                          NULL);
+            }
+          else if (target_type >= 0x40 && target_type <= 0x41) /* localvar_target */
+            {
+              guint16 table_length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+              GPtrArray *table = g_ptr_array_sized_new (table_length);
+              g_ptr_array_set_free_func (table, g_object_unref);
+
+              for (gint j = 0; j < table_length; j++)
+                {
+                  guint16 start_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (annotations); g_ptr_array_unref (table); goto end; }
+                  guint16 length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (annotations); g_ptr_array_unref (table); goto end; }
+                  guint16 index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+                  if (tmp_error) { g_ptr_array_unref (annotations); g_ptr_array_unref (table); goto end; }
+
+                  J2cLocalvar *localvar = g_object_new (J2C_TYPE_LOCALVAR,
+                                                        J2C_ATTRIBUTE_PROP_START_PC, start_pc,
+                                                        J2C_ATTRIBUTE_PROP_LENGTH, length,
+                                                        J2C_ATTRIBUTE_PROP_INDEX, index,
+                                                        NULL);
+                  g_ptr_array_add (table, localvar);
+                }
+
+              target_info = g_object_new (J2C_TYPE_TARGET_INFO,
+                                          J2C_ATTRIBUTE_PROP_TARGET_TYPE, target_type,
+                                          J2C_ATTRIBUTE_PROP_LOCALVAR_TARGET, table,
+                                          NULL);
+            }
+          else if (target_type == 0x42) /* catch_target */
+            {
+              guint16 exception_table_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+              target_info = g_object_new (J2C_TYPE_TARGET_INFO,
+                                          J2C_ATTRIBUTE_PROP_TARGET_TYPE, target_type,
+                                          J2C_ATTRIBUTE_PROP_EXCEPTION_TABLE_INDEX, exception_table_index,
+                                          NULL);
+            }
+          else if (target_type >= 0x43 && target_type <= 0x46) /* offset_target */
+            {
+              guint16 offset = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+              target_info = g_object_new (J2C_TYPE_TARGET_INFO,
+                                          J2C_ATTRIBUTE_PROP_TARGET_TYPE, target_type,
+                                          J2C_ATTRIBUTE_PROP_OFFSET, offset,
+                                          NULL);
+            }
+          else if (target_type >= 0x47 && target_type <= 0x4B) /* type_argument_target */
+            {
+              guint16 offset = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+              guint8 type_argument_index = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+              target_info = g_object_new (J2C_TYPE_TARGET_INFO,
+                                          J2C_ATTRIBUTE_PROP_TARGET_TYPE, target_type,
+                                          J2C_ATTRIBUTE_PROP_OFFSET, offset,
+                                          J2C_ATTRIBUTE_PROP_TYPE_ARGUMENT_INDEX, type_argument_index,
+                                          NULL);
+            }
+          else /* invalid target */
+            {
+              g_ptr_array_unref (annotations);
+              goto end;
+            }
+
+          guint8 path_length = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+          if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+          GPtrArray *path = g_ptr_array_sized_new (path_length);
+          g_ptr_array_set_free_func (path, g_object_unref);
+
+          for (gint j = 0; j < path_length; j++)
+            {
+              guint8 type_path_kind = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); g_ptr_array_unref (path); goto end; }
+              guint8 type_argument_index = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); g_ptr_array_unref (path); goto end; }
+
+              J2cPath *item = g_object_new (J2C_TYPE_PATH,
+                                              J2C_ATTRIBUTE_PROP_TYPE_PATH_KIND, type_path_kind,
+                                              J2C_ATTRIBUTE_PROP_TYPE_ARGUMENT_INDEX, type_argument_index,
+                                              NULL);
+              g_ptr_array_add (path, item);
+            }
+
+          J2cTPath *target_path = g_object_new (J2C_TYPE_T_PATH,
+                                                J2C_ATTRIBUTE_PROP_PATH, path,
+                                                NULL);
+
+          guint16 type_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+          if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+
+          guint16 num_element_value_pairs = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+          if (tmp_error) { g_ptr_array_unref (annotations); goto end; }
+          GPtrArray *element_value_pairs = g_ptr_array_sized_new (num_element_value_pairs);
+          g_ptr_array_set_free_func (element_value_pairs, g_object_unref);
+          for (gint j = 0; j < num_element_value_pairs; j++)
+            {
+              J2cElementValuePair *pair = j2c_element_value_pair_new_from_stream(in, &tmp_error);
+              if (tmp_error) { g_ptr_array_unref (annotations); g_ptr_array_unref (element_value_pairs); goto end; }
+
+              g_ptr_array_add (element_value_pairs, pair);
+            }
+
+          J2cTAnnotation *annotation = g_object_new (J2C_TYPE_T_ANNOTATION,
+                                                     J2C_ATTRIBUTE_PROP_TARGET_INFO, target_info,
+                                                     J2C_ATTRIBUTE_PROP_TARGET_PATH, target_path,
+                                                     J2C_ATTRIBUTE_PROP_TYPE_INDEX, type_index,
+                                                     J2C_ATTRIBUTE_PROP_ELEMENT_VALUE_PAIRS, element_value_pairs,
+                                                     NULL);
+          g_ptr_array_add (annotations, annotation);
+        }
+
+      ret = g_object_new (g_strcmp0 (name, J2C_RUNTIME_VISIBLE_TYPE_ANNOTATIONS) == 0 ?
+                            J2C_TYPE_ATTRIBUTE_RUNTIME_VISIBLE_TYPE_ANNOTATIONS : J2C_TYPE_ATTRIBUTE_RUNTIME_INVISIBLE_TYPE_ANNOTATIONS,
+                          J2C_ATTRIBUTE_PROP_TYPE_ANNOTATIONS, annotations,
+                          NULL);
+    }
+
+end:
   if (tmp_error) g_propagate_error (error, tmp_error);
-  return NULL;
+  return ret;
 }
 
 static gpointer
