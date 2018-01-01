@@ -3,7 +3,7 @@
 gchar *
 j2c_modified_utf8_to_standard (guint8 *utf8_bytes, guint32 const length, GError **error)
 {
-    g_return_val_if_fail (utf8_bytes != NULL, NULL);
+    g_return_val_if_fail (length == 0 || utf8_bytes != NULL, NULL);
 
     gint index = 0;
     gchar *value = g_strdup ("");
