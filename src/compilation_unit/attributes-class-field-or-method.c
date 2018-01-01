@@ -64,7 +64,7 @@ struct _J2cElementValue
 
   guint8 tag;
   /***
-  J2cElementValue.tag is a signle ASCII character denoting the type of
+  J2cElementValue.tag is a single ASCII character denoting the type of
   this union.
 
     B -> constant_value_index  CONSTANT_Integer
@@ -355,6 +355,14 @@ j2c_annotation_class_init (J2cAnnotationClass *klass)
   object_class->get_property = j2c_annotation_get_property;
   object_class->dispose      = j2c_annotation_dispose;
 
+  g_object_class_install_property (object_class, PROP_TYPE_INDEX,
+                                   g_param_spec_uint (J2C_ATTRIBUTE_PROP_TYPE_INDEX,
+                                                      J2C_ATTRIBUTE_PROP_TYPE_INDEX,
+                                                      "",
+                                                      0, G_MAXUINT16,
+                                                      0,
+                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
   g_object_class_install_property (object_class, PROP_ELEMENT_VALUE_PAIRS,
                                    g_param_spec_boxed (J2C_ATTRIBUTE_PROP_ELEMENT_VALUE_PAIRS,
                                                        J2C_ATTRIBUTE_PROP_ELEMENT_VALUE_PAIRS,
@@ -457,7 +465,7 @@ static void j2c_attribute_runtime_visible_annotations_init (J2cAttributeRuntimeV
 static void j2c_attribute_runtime_invisible_annotations_init (J2cAttributeRuntimeInvisibleAnnotations *self) { return; }
 static void j2c_annotation_init (J2cAnnotation *self) { return; }
 static void j2c_element_value_pair_init (J2cElementValuePair *self) { return; }
-static void j2c_element_value_init (J2cElementValue *self) { return; }
+static void j2c_element_value_init (J2cElementValue *self) { self->annotation_value = NULL; }
 
 /****
   DESTRUCTION METHODS
@@ -603,6 +611,9 @@ j2c_annotation_set_property (GObject *object, guint property_id, const GValue *v
 
   switch (property_id)
     {
+      case PROP_TYPE_INDEX:
+        self->type_index = g_value_get_uint (value);
+        break;
       case PROP_ELEMENT_VALUE_PAIRS:
         if (self->element_value_pairs)
           g_ptr_array_unref (self->element_value_pairs);
@@ -641,33 +652,64 @@ j2c_element_value_set_property (GObject *object, guint property_id, const GValue
 {
   J2cElementValue *self = J2C_ELEMENT_VALUE (object);
 
-  switch (property_id)
+  if (property_id == PROP_TAG)
     {
-      case PROP_CONSTANT_VALUE_INDEX:
-        self->const_value_index = (guint16) g_value_get_uint (value);
+      self->tag = g_value_get_uint (value);
+      return;
+    }
+
+  switch (self->tag)
+    {
+      case 'B':
+      case 'C':
+      case 'D':
+      case 'F':
+      case 'I':
+      case 'J':
+      case 'S':
+      case 'Z':
+      case 's':
+        if (property_id == PROP_CONSTANT_VALUE_INDEX)
+          self->const_value_index = g_value_get_uint (value);
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
-      case PROP_TYPE_NAME_INDEX:
-        self->type_name_index = (guint16) g_value_get_uint (value);
+      case 'e':
+        if (property_id == PROP_TYPE_NAME_INDEX)
+          self->type_name_index = g_value_get_uint (value);
+        else if (property_id == PROP_CONST_NAME_INDEX)
+          self->const_name_index = g_value_get_uint (value);
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
-      case PROP_CONST_NAME_INDEX:
-        self->const_name_index = (guint16) g_value_get_uint (value);
+      case 'c':
+        if (property_id == PROP_CLASS_INFO_INDEX)
+          self->class_info_index = g_value_get_uint (value);
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
-      case PROP_CLASS_INFO_INDEX:
-        self->class_info_index = (guint16) g_value_get_uint (value);
+      case '@':
+        if (property_id == PROP_ANNOTATION_VALUE)
+          {
+            if (self->annotation_value)
+              g_object_unref (self->annotation_value);
+            self->annotation_value = g_value_dup_object (value);
+          }
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
-      case PROP_ANNOTATION_VALUE:
-        if (self->annotation_value)
-          g_object_unref (self->annotation_value);
-        self->annotation_value = g_value_dup_object (value);
-        break;
-      case PROP_ARRAY_VALUE:
-        if (self->array_value)
-          g_ptr_array_unref (self->array_value);
-        self->array_value = g_value_get_boxed (value);
+      case '[':
+        if (property_id == PROP_ARRAY_VALUE)
+          {
+            if (self->array_value)
+              g_ptr_array_unref (self->array_value);
+            self->array_value = g_value_get_boxed (value);
+          }
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
       default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
+        g_warning ("Could not parse J2cElementValue tag %c", self->tag);
     }
 }
 
@@ -726,6 +768,9 @@ j2c_annotation_get_property (GObject *object, guint property_id, GValue *value, 
 
   switch (property_id)
     {
+      case PROP_TYPE_INDEX:
+        g_value_set_uint (value, self->type_index);
+        break;
       case PROP_ELEMENT_VALUE_PAIRS:
         g_value_set_boxed (value, self->element_value_pairs);
         break;
@@ -760,28 +805,55 @@ j2c_element_value_get_property (GObject *object, guint property_id, GValue *valu
 {
   J2cElementValue *self = J2C_ELEMENT_VALUE (object);
 
-  switch (property_id)
+  if (property_id == PROP_TAG)
     {
-      case PROP_CONSTANT_VALUE_INDEX:
-        g_value_set_uint (value, (guint) self->const_value_index);
+      g_value_set_uint (value, self->tag);
+      return;
+    }
+
+  switch (self->tag)
+    {
+      case 'B':
+      case 'C':
+      case 'D':
+      case 'F':
+      case 'I':
+      case 'J':
+      case 'S':
+      case 'Z':
+      case 's':
+        if (property_id == PROP_CONSTANT_VALUE_INDEX)
+          g_value_set_uint (value, self->const_value_index);
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
-      case PROP_TYPE_NAME_INDEX:
-        g_value_set_uint (value, (guint) self->type_name_index);
+      case 'e':
+        if (property_id == PROP_TYPE_NAME_INDEX)
+          g_value_set_uint (value, self->type_name_index);
+        else if (property_id == PROP_CONST_NAME_INDEX)
+          g_value_set_uint (value, self->const_name_index);
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
-      case PROP_CONST_NAME_INDEX:
-        g_value_set_uint (value, (guint) self->const_name_index);
+      case 'c':
+        if (property_id == PROP_CLASS_INFO_INDEX)
+          g_value_set_uint (value, self->class_info_index);
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
-      case PROP_CLASS_INFO_INDEX:
-        g_value_set_uint (value, (guint) self->class_info_index);
+      case '@':
+        if (property_id == PROP_ANNOTATION_VALUE)
+          g_value_set_object (value, self->annotation_value);
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
-      case PROP_ANNOTATION_VALUE:
-        g_value_set_object (value, self->annotation_value);
-        break;
-      case PROP_ARRAY_VALUE:
-        g_value_set_boxed (value, self->array_value);
+      case '[':
+        if (property_id == PROP_ARRAY_VALUE)
+          g_value_set_boxed (value, self->array_value);
+        else
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
       default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-        break;
+        g_warning ("Could not parse J2cElementValue tag %c", self->tag);
     }
 }
