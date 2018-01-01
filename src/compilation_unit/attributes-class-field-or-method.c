@@ -465,7 +465,7 @@ static void j2c_attribute_runtime_visible_annotations_init (J2cAttributeRuntimeV
 static void j2c_attribute_runtime_invisible_annotations_init (J2cAttributeRuntimeInvisibleAnnotations *self) { return; }
 static void j2c_annotation_init (J2cAnnotation *self) { return; }
 static void j2c_element_value_pair_init (J2cElementValuePair *self) { return; }
-static void j2c_element_value_init (J2cElementValue *self) { self->annotation_value = NULL; }
+static void j2c_element_value_init (J2cElementValue *self) { return; }
 
 /****
   DESTRUCTION METHODS
@@ -672,7 +672,7 @@ j2c_element_value_set_property (GObject *object, guint property_id, const GValue
         if (property_id == PROP_CONSTANT_VALUE_INDEX)
           self->const_value_index = g_value_get_uint (value);
         else
-          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+          goto invalid_for_this_tag;
         break;
       case 'e':
         if (property_id == PROP_TYPE_NAME_INDEX)
@@ -680,13 +680,13 @@ j2c_element_value_set_property (GObject *object, guint property_id, const GValue
         else if (property_id == PROP_CONST_NAME_INDEX)
           self->const_name_index = g_value_get_uint (value);
         else
-          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+          goto invalid_for_this_tag;
         break;
       case 'c':
         if (property_id == PROP_CLASS_INFO_INDEX)
           self->class_info_index = g_value_get_uint (value);
         else
-          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+          goto invalid_for_this_tag;
         break;
       case '@':
         if (property_id == PROP_ANNOTATION_VALUE)
@@ -696,7 +696,7 @@ j2c_element_value_set_property (GObject *object, guint property_id, const GValue
             self->annotation_value = g_value_dup_object (value);
           }
         else
-          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+          goto invalid_for_this_tag;
         break;
       case '[':
         if (property_id == PROP_ARRAY_VALUE)
@@ -706,11 +706,22 @@ j2c_element_value_set_property (GObject *object, guint property_id, const GValue
             self->array_value = g_value_get_boxed (value);
           }
         else
-          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+          goto invalid_for_this_tag;
         break;
       default:
         g_warning ("Could not parse J2cElementValue tag %c", self->tag);
     }
+
+invalid_for_this_tag:
+  if ( (property_id == PROP_CONSTANT_VALUE_INDEX)
+    || (property_id == PROP_TYPE_NAME_INDEX)
+    || (property_id == PROP_CONST_NAME_INDEX)
+    || (property_id == PROP_CLASS_INFO_INDEX)
+    || (property_id == PROP_ANNOTATION_VALUE)
+    || (property_id == PROP_ARRAY_VALUE) )
+    return; /* Valid property id, but should be ignored given the value of tag */
+  else
+    G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
 }
 
 static void
