@@ -9,7 +9,7 @@ j2c_read_attribute_any (gchar *name, GDataInputStream *in, const guint16 length,
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   g_return_val_if_fail (name != NULL && *name != '\0', NULL);
-  g_return_val_if_fail (in != NULL, NULL);
+  g_return_val_if_fail (length == 0 || in != NULL, NULL);
 
   gpointer ret = NULL;
   GError *tmp_error = NULL;
@@ -217,7 +217,7 @@ j2c_read_attribute_class_field_or_method (gchar *name, GDataInputStream *in, con
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   g_return_val_if_fail (name != NULL && *name != '\0', NULL);
-  g_return_val_if_fail (in != NULL, NULL);
+  g_return_val_if_fail (length == 0 || in != NULL, NULL);
 
   GError *tmp_error = NULL;
 
@@ -273,7 +273,7 @@ j2c_read_attribute_class (gchar *name, GDataInputStream *in, const guint16 lengt
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   g_return_val_if_fail (name != NULL && *name != '\0', NULL);
-  g_return_val_if_fail (in != NULL, NULL);
+  g_return_val_if_fail (length == 0 || in != NULL, NULL);
 
   GError *tmp_error = NULL;
 
@@ -410,7 +410,7 @@ j2c_read_attribute_field (gchar *name, GDataInputStream *in, const guint16 lengt
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   g_return_val_if_fail (name != NULL && *name != '\0', NULL);
-  g_return_val_if_fail (in != NULL, NULL);
+  g_return_val_if_fail (length == 0 || in != NULL, NULL);
 
   GError *tmp_error = NULL;
 
@@ -442,7 +442,7 @@ j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 leng
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   g_return_val_if_fail (name != NULL && *name != '\0', NULL);
-  g_return_val_if_fail (in != NULL, NULL);
+  g_return_val_if_fail (length == 0 || in != NULL, NULL);
 
   GError *tmp_error = NULL;
 
@@ -629,7 +629,7 @@ j2c_read_attribute_code (gchar *name, GDataInputStream *in, const guint16 length
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   g_return_val_if_fail (name != NULL && *name != '\0', NULL);
-  g_return_val_if_fail (in != NULL, NULL);
+  g_return_val_if_fail (length == 0 || in != NULL, NULL);
 
   GError *tmp_error = NULL;
 
@@ -979,13 +979,16 @@ j2c_read_attribute (GType type, GDataInputStream *in, J2cConstantPool *cp, GErro
   guint32 length = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
 
-  data_buffer = g_malloc (length);
-  if (length != g_input_stream_read (G_INPUT_STREAM (in), data_buffer, length, NULL, &tmp_error))
-    goto error;
+  if (length > 0)
+    {
+      data_buffer = g_malloc (length);
+      if (length != g_input_stream_read (G_INPUT_STREAM (in), data_buffer, length, NULL, &tmp_error))
+        goto error;
 
-  memory_input_stream = g_memory_input_stream_new_from_data (data_buffer, length, NULL);
-  data_in = g_data_input_stream_new (memory_input_stream);
-  g_data_input_stream_set_byte_order (data_in, g_data_input_stream_get_byte_order (in));
+      memory_input_stream = g_memory_input_stream_new_from_data (data_buffer, length, NULL);
+      data_in = g_data_input_stream_new (memory_input_stream);
+      g_data_input_stream_set_byte_order (data_in, g_data_input_stream_get_byte_order (in));
+    }
 
   if (type == J2C_TYPE_COMPILATION_UNIT_CLASS)
     {
