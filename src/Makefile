@@ -106,7 +106,8 @@ j2c_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(srcdir)/logger/liblogger.a $(srcdir)/reader/libreader.a \
 	$(srcdir)/indexer/libindexer.a \
-	$(srcdir)/compilation_unit/libcompilationunit.a
+	$(srcdir)/compilation_unit/libcompilationunit.a \
+	$(srcdir)/util/libutil.a
 j2c_LINK = $(CCLD) $(j2c_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o \
 	$@
 AM_V_P = $(am__v_P_$(V))
@@ -221,7 +222,7 @@ AUTOMAKE = ${SHELL} /home/jake/projects/j2c/missing automake-1.15
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -g -O2
+CFLAGS = -ggdb -O0
 CPPFLAGS = 
 CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
@@ -310,6 +311,7 @@ top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
 SUBDIRS = logger \
+          util \
 	  reader \
           indexer \
 	  compilation_unit
@@ -322,7 +324,8 @@ j2c_LDADD = -lm $(GLIB_LIBS) $(GIO_LIBS) $(GOBJECT_LIBS) $(ZIP_LIBS) \
 			$(srcdir)/logger/liblogger.a \
 			$(srcdir)/reader/libreader.a \
 			$(srcdir)/indexer/libindexer.a \
-			$(srcdir)/compilation_unit/libcompilationunit.a
+			$(srcdir)/compilation_unit/libcompilationunit.a \
+			$(srcdir)/util/libutil.a
 
 all: all-recursive
 

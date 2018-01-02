@@ -1,13 +1,14 @@
 #include <j2c/method-or-field-info.h>
 #include <j2c/attributes.h>
 #include <j2c/logger.h>
+#include <j2c/object-array.h>
 
 typedef struct
 {
   guint16 access_flags;
   guint16 name_index;
   guint16 descriptor_index;
-  GPtrArray *attributes;
+  J2cObjectArray *attributes;
 } J2cMethodOrFieldInfoPrivate   ;
 
 G_DEFINE_TYPE_WITH_PRIVATE (J2cMethodOrFieldInfo, j2c_method_or_field_info, G_TYPE_OBJECT)
@@ -67,11 +68,12 @@ j2c_method_or_field_info_from_class_file (GType type, GDataInputStream *in, J2cC
   g_return_val_if_fail (cp != NULL, NULL);
 
   GError *tmp_error = NULL;
+  J2cMethodOrFieldInfo *ret = NULL;
 
   guint16 access_flags = 0;
   guint16 name_index = 0;
   guint16 descriptor_index = 0;
-  GPtrArray *attributes = NULL;
+  J2cObjectArray *attributes = NULL;
 
   access_flags = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
@@ -85,8 +87,7 @@ j2c_method_or_field_info_from_class_file (GType type, GDataInputStream *in, J2cC
   guint16 attributes_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
 
-  attributes = g_ptr_array_sized_new (attributes_count);
-  g_ptr_array_set_free_func (attributes, g_object_unref);
+  attributes = j2c_object_array_sized_new (attributes_count);
   for (gint i = 0; i < attributes_count; i ++)
     {
       gpointer attribute = j2c_read_attribute (type, in, cp, &tmp_error);
@@ -98,12 +99,12 @@ j2c_method_or_field_info_from_class_file (GType type, GDataInputStream *in, J2cC
         }
       else
         {
-          g_ptr_array_add (attributes, attribute);
+          j2c_object_array_add (attributes, attribute);
         }
     }
 
 success:
-  return g_object_new (type,
+  ret = g_object_new (type,
                        ACCESS_FLAGS, access_flags,
                        NAME_INDEX, name_index,
                        DESCRIPTOR_INDEX, descriptor_index,
@@ -113,8 +114,8 @@ error:
   if (tmp_error)
     g_propagate_error (error, tmp_error);
   if (attributes)
-    g_ptr_array_unref (attributes);
-  return NULL;
+    g_object_unref (attributes);
+  return ret;
 }
 
 J2cFieldInfo *
@@ -193,10 +194,10 @@ j2c_method_or_field_info_class_init (J2cMethodOrFieldInfoClass *klass)
                        0,
                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   obj_properties[PROP_ATTRIBUTES] =
-    g_param_spec_boxed (ATTRIBUTES,
+    g_param_spec_object (ATTRIBUTES,
                         ATTRIBUTES,
                         "Attributes associated with this field.",
-                        G_TYPE_PTR_ARRAY,
+                        J2C_TYPE_OBJECT_ARRAY,
                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
   g_object_class_install_properties (object_class, N_PROPERTIES, obj_properties);
@@ -243,10 +244,7 @@ j2c_method_or_field_info_dispose (GObject *object)
     j2c_method_or_field_info_get_instance_private (J2C_METHOD_OR_FIELD_INFO (object));
 
   if (priv->attributes)
-    {
-      g_ptr_array_unref (priv->attributes);
-      priv->attributes = NULL;
-    }
+    g_clear_object (&priv->attributes);
 
   G_OBJECT_CLASS (j2c_method_or_field_info_parent_class)->dispose (object);
 }
@@ -274,8 +272,8 @@ j2c_method_or_field_info_set_property (GObject *object, guint property_id, const
       break;
     case PROP_ATTRIBUTES:
       if (priv->attributes)
-        g_ptr_array_unref (priv->attributes);
-      priv->attributes = g_value_get_boxed (value);
+        g_object_unref (priv->attributes);
+      priv->attributes = g_value_dup_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -301,7 +299,7 @@ j2c_method_or_field_info_get_property (GObject *object, guint property_id, GValu
       g_value_set_uint (value, (guint) priv->descriptor_index);
       break;
     case PROP_ATTRIBUTES:
-      g_value_set_boxed (value, priv->attributes);
+      g_value_set_object (value, priv->attributes);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

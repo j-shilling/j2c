@@ -1,4 +1,5 @@
 SUBDIRS = logger \
+          util \
 	  reader \
           indexer \
 	  compilation_unit
@@ -14,4 +15,5 @@ j2c_LDADD = -lm $(GLIB_LIBS) $(GIO_LIBS) $(GOBJECT_LIBS) $(ZIP_LIBS) \
 			$(srcdir)/logger/liblogger.a \
 			$(srcdir)/reader/libreader.a \
 			$(srcdir)/indexer/libindexer.a \
-			$(srcdir)/compilation_unit/libcompilationunit.a
+			$(srcdir)/compilation_unit/libcompilationunit.a \
+			$(srcdir)/util/libutil.a

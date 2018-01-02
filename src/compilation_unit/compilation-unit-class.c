@@ -3,6 +3,7 @@
 #include <j2c/method-or-field-info.h>
 #include <j2c/attributes.h>
 #include <j2c/logger.h>
+#include <j2c/object-array.h>
 
 #include <gio/gio.h>
 
@@ -19,9 +20,9 @@ struct _J2cCompilationUnitClass
   guint16 super_class;
 
   GArray    *interfaces;
-  GPtrArray *fields;
-  GPtrArray *methods;
-  GPtrArray *attributes;
+  J2cObjectArray *fields;
+  J2cObjectArray *methods;
+  J2cObjectArray *attributes;
 };
 
 /* GObjectClass methods */
@@ -80,6 +81,7 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
   g_return_val_if_fail (j2c_indexed_file_get_file_type (file) == J2C_FILE_TYPE_CLASS, NULL);
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
+  J2cCompilationUnitClass *ret = NULL;
   guint16 minor_version;
   guint16 major_version;
   J2cConstantPool *constant_pool = NULL;
@@ -89,11 +91,11 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
   guint16 interfaces_count;
   GArray *interfaces = NULL;
   guint16 fields_count;
-  GPtrArray *fields = NULL;
+  J2cObjectArray *fields = NULL;
   guint16 methods_count;
-  GPtrArray *methods = NULL;
+  J2cObjectArray *methods = NULL;
   guint16 attributes_count;
-  GPtrArray *attributes = NULL;
+  J2cObjectArray *attributes = NULL;
 
   GError *tmp_error = NULL;
   GDataInputStream *in = j2c_indexed_file_read (file, &tmp_error);
@@ -137,32 +139,29 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
 
   fields_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
-  fields = g_ptr_array_sized_new (fields_count);
-  g_ptr_array_set_free_func (fields, g_object_unref);
+  fields = j2c_object_array_sized_new (fields_count);
   for (gint i = 0; i < fields_count; i ++)
     {
       J2cFieldInfo *field = j2c_field_info_from_class_file (in, constant_pool, &tmp_error);
       if (tmp_error) goto error;
 
-      g_ptr_array_add (fields, field);
+      j2c_object_array_add (fields, field);
     }
 
   methods_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
-  methods = g_ptr_array_sized_new (methods_count);
-  g_ptr_array_set_free_func (methods, g_object_unref);
+  methods = j2c_object_array_sized_new (methods_count);
   for (gint i = 0; i < methods_count; i ++)
     {
       J2cMethodInfo *method = j2c_method_info_from_class_file (in, constant_pool, &tmp_error);
       if (tmp_error) goto error;
 
-      g_ptr_array_add (methods, method);
+      j2c_object_array_add (methods, method);
     }
 
   attributes_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
-  attributes = g_ptr_array_sized_new (attributes_count);
-  g_ptr_array_set_free_func (attributes, g_object_unref);
+  attributes = j2c_object_array_sized_new (attributes_count);
   for (gint i = 0; i < attributes_count; i++)
     {
       gpointer attribute =
@@ -175,14 +174,12 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
         }
       else
         {
-          g_ptr_array_add (attributes, attribute);
+          j2c_object_array_add (attributes, attribute);
         }
     }
 
-  g_object_unref (in);
-
 success:
-  return g_object_new (J2C_TYPE_COMPILATION_UNIT_CLASS,
+  ret = g_object_new (J2C_TYPE_COMPILATION_UNIT_CLASS,
 		       MINOR_VERSION, minor_version,
 		       MAJOR_VERSION, major_version,
 		       CONSTANT_POOL, constant_pool,
@@ -203,13 +200,13 @@ error:
   if (interfaces)
     g_array_unref (interfaces);
   if (fields)
-    g_ptr_array_unref (fields);
+    g_object_unref (fields);
   if (methods)
-    g_ptr_array_unref (methods);
+    g_object_unref (methods);
   if (attributes)
-    g_ptr_array_unref (attributes);
+    g_object_unref (attributes);
 
-  return NULL;
+  return ret;
 }
 
 static void
@@ -272,22 +269,22 @@ j2c_compilation_unit_class_class_init (J2cCompilationUnitClassClass *klass)
 			G_TYPE_ARRAY,
 			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   obj_properties[PROP_FIELDS] =
-    g_param_spec_boxed (FIELDS,
+    g_param_spec_object (FIELDS,
 			FIELDS,
 			"Collection of J2cFieldInfo for this type.",
-			G_TYPE_PTR_ARRAY,
+			J2C_TYPE_OBJECT_ARRAY,
 			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   obj_properties[PROP_METHODS] =
-    g_param_spec_boxed (METHODS,
+    g_param_spec_object (METHODS,
 			METHODS,
 			"Collection of J2cMethodInfo for this type.",
-			G_TYPE_PTR_ARRAY,
+			J2C_TYPE_OBJECT_ARRAY,
 			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   obj_properties[PROP_ATTRIBUTES] =
-    g_param_spec_boxed (ATTRIBUTES,
+    g_param_spec_object (ATTRIBUTES,
 			ATTRIBUTES,
 			"Collection of J2cAttributeInfo for this type.",
-			G_TYPE_PTR_ARRAY,
+			J2C_TYPE_OBJECT_ARRAY,
 			G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
 
   g_object_class_install_properties (object_class, N_PROPERTIES, obj_properties);
@@ -349,16 +346,13 @@ j2c_compilation_unit_class_dispose (GObject *object)
   if (self->interfaces)
     g_array_unref (self->interfaces);
   if (self->methods)
-    g_ptr_array_unref (self->methods);
+    g_clear_object (&self->methods);
   if (self->fields)
-    g_ptr_array_unref (self->fields);
+    g_clear_object (&self->fields);
   if (self->attributes)
-    g_ptr_array_unref (self->attributes);
+    g_clear_object (&self->attributes);
 
   self->name = NULL;
-  self->fields = NULL;
-  self->methods = NULL;
-  self->attributes = NULL;
 
   G_OBJECT_CLASS (j2c_compilation_unit_class_parent_class)->dispose (object);
 }
@@ -403,15 +397,15 @@ j2c_compilation_unit_class_set_property (GObject *object, guint property_id, con
       break;
 
     case PROP_FIELDS:
-      self->fields = g_value_get_boxed (value);
+      self->fields = g_value_dup_object (value);
       break;
 
     case PROP_METHODS:
-      self->methods = g_value_get_boxed (value);
+      self->methods = g_value_dup_object (value);
       break;
 
     case PROP_ATTRIBUTES:
-      self->attributes = g_value_get_boxed (value);
+      self->attributes = g_value_dup_object (value);
       break;
 
     default:
@@ -456,15 +450,15 @@ j2c_compilation_unit_class_get_property (GObject *object, guint property_id, GVa
       break;
 
     case PROP_FIELDS:
-      g_value_set_boxed (value, self->fields);
+      g_value_set_object (value, self->fields);
       break;
 
     case PROP_METHODS:
-      g_value_set_boxed (value, self->methods);
+      g_value_set_object (value, self->methods);
       break;
 
     case PROP_ATTRIBUTES:
-      g_value_set_boxed (value, self->attributes);
+      g_value_set_object (value, self->attributes);
       break;
 
     default:

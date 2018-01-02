@@ -21,6 +21,7 @@ PKG_CHECK_MODULES([ZIP], [libzip])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+		 src/util/Makefile
                  src/logger/Makefile
 		 src/reader/Makefile
                  src/indexer/Makefile
