@@ -356,7 +356,7 @@ j2c_integer_info_class_init (J2cIntegerInfoClass *klass)
     object_class->get_property = j2c_integer_info_get_property;
 
     g_object_class_install_property (object_class, PROP_VALUE,
-                                     g_param_spec_int64 (J2C_CONSTANT_POOL_PROP_VALUE,
+                                     g_param_spec_int (J2C_CONSTANT_POOL_PROP_VALUE,
                                              "value",
                                              "The value of a data type in the constant pool.",
                                              G_MININT32, G_MAXINT32,
@@ -789,7 +789,7 @@ j2c_integer_info_set_property (GObject *object, guint property_id, const GValue 
     switch (property_id)
     {
     case PROP_VALUE:
-        self->value = (gint32) g_value_get_int64 (value);
+        self->value = (gint32) g_value_get_int (value);
         break;
 
     default:
@@ -1050,7 +1050,7 @@ j2c_integer_info_get_property (GObject *object, guint property_id, GValue *value
     switch (property_id)
     {
     case PROP_VALUE:
-        g_value_set_int64 (value, (gint64) self->value);
+        g_value_set_int (value, self->value);
         break;
 
     default:
@@ -1329,12 +1329,12 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
 
         else if (tag == CONSTANT_Integer)
         {
-            bytes = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
+            gint32 value = g_data_input_stream_read_int32 (in, NULL, &tmp_error);
             if (tmp_error) goto pool_error;
 
             J2cIntegerInfo *info = g_object_new (J2C_TYPE_INTEGER_INFO,
                                                  J2C_CONSTANT_POOL_PROP_TAG, tag,
-                                                 J2C_CONSTANT_POOL_PROP_VALUE, bytes,
+                                                 J2C_CONSTANT_POOL_PROP_VALUE, value,
                                                  NULL);
             j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
