@@ -1,5 +1,6 @@
 #include <j2c/constant-pool.h>
 #include <j2c/modified-utf8.h>
+#include <j2c/object-array.h>
 
 #include <math.h>
 
@@ -31,7 +32,7 @@ struct _J2cConstantPool
     GObject parent;
 
     guint16 count;
-    GPtrArray *pool;
+    J2cObjectArray *pool;
 };
 
 struct _J2cClassInfo
@@ -197,7 +198,6 @@ static void j2c_invoke_dynamic_info_get_property (GObject *object, guint propert
 
 
 static void j2c_constant_pool_ptr_array_free (gpointer data);
-static void j2c_constant_pool_ptr_array_add (GPtrArray *arr, J2cConstantPoolItem *item);
 
 /****
   CLASS INIT FUNCTIONS
@@ -227,10 +227,10 @@ j2c_constant_pool_class_init (J2cConstantPoolClass *klass)
                                              1,
                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
     g_object_class_install_property (object_class, PROP_POOL,
-                                     g_param_spec_boxed (J2C_CONSTANT_POOL_PROP_POOL,
+                                     g_param_spec_object (J2C_CONSTANT_POOL_PROP_POOL,
                                              "pool",
                                              "The array of constant pool entries.",
-                                             G_TYPE_PTR_ARRAY,
+                                             J2C_TYPE_OBJECT_ARRAY,
                                              G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 }
@@ -649,8 +649,8 @@ j2c_constant_pool_dispose (GObject *object)
 {
     J2cConstantPool *constant_pool = J2C_CONSTANT_POOL (object);
 
-    g_ptr_array_free (constant_pool->pool, TRUE);
-    constant_pool->pool = NULL;
+    if (constant_pool->pool)
+      g_clear_object (&constant_pool->pool);
     constant_pool->count = 0;
 
     G_OBJECT_CLASS (j2c_constant_pool_parent_class)->dispose (object);
@@ -695,12 +695,8 @@ j2c_constant_pool_set_property (GObject *object, guint property_id, const GValue
 
     case PROP_POOL:
         if (self->pool)
-        {
-            g_warning ("Cannot set the constant_pool's array more than once.");
-            break;
-        }
-
-        self->pool = g_value_get_boxed (value);
+          g_object_unref (self->pool);
+        self->pool = g_value_dup_object (value);
         break;
 
     default:
@@ -961,7 +957,7 @@ j2c_constant_pool_get_property (GObject *object, guint property_id, GValue *valu
         break;
 
     case PROP_POOL:
-        g_value_set_boxed (value, self->pool);
+        g_value_set_object (value, self->pool);
         break;
 
     default:
@@ -1206,14 +1202,6 @@ j2c_invoke_dynamic_info_get_property (GObject *object, guint property_id, GValue
     }
 }
 
-static void
-j2c_constant_pool_ptr_array_add (GPtrArray *arr, J2cConstantPoolItem *item)
-{
-    g_return_if_fail (NULL != arr);
-    g_return_if_fail (NULL != item && J2C_IS_CONSTANT_POOL_ITEM (item));
-
-    g_ptr_array_add (arr, item);
-}
 /****
   PUBLIC METHODS
  ****/
@@ -1236,8 +1224,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
 
     if (tmp_error) goto cleanup;
 
-    GPtrArray *pool = g_ptr_array_sized_new ((guint) (constant_pool_count - 1));
-    g_ptr_array_set_free_func (pool, j2c_constant_pool_ptr_array_free);
+    J2cObjectArray *pool = j2c_object_array_sized_new ((guint) (constant_pool_count - 1));
     for (gint i = 1; i < constant_pool_count; i ++)
     {
         guint8 tag = (guint8) g_data_input_stream_read_byte (in, NULL, &tmp_error);
@@ -1264,7 +1251,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                                J2C_CONSTANT_POOL_PROP_TAG, tag,
                                                J2C_CONSTANT_POOL_PROP_NAME_INDEX, name_index,
                                                NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_Fieldref)
@@ -1280,7 +1267,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                                   J2C_CONSTANT_POOL_PROP_CLASS_INDEX, class_index,
                                                   J2C_CONSTANT_POOL_PROP_NAME_AND_TYPE_INDEX, name_and_type_index,
                                                   NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_Methodref)
@@ -1296,7 +1283,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                                   J2C_CONSTANT_POOL_PROP_CLASS_INDEX, class_index,
                                                   J2C_CONSTANT_POOL_PROP_NAME_AND_TYPE_INDEX, name_and_type_index,
                                                   NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_InterfaceMethodref)
@@ -1312,7 +1299,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                                   J2C_CONSTANT_POOL_PROP_CLASS_INDEX, class_index,
                                                   J2C_CONSTANT_POOL_PROP_NAME_AND_TYPE_INDEX, name_and_type_index,
                                                   NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_String)
@@ -1324,7 +1311,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                                 J2C_CONSTANT_POOL_PROP_TAG, tag,
                                                 J2C_CONSTANT_POOL_PROP_STRING_INDEX, string_index,
                                                 NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_Integer)
@@ -1336,7 +1323,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                                  J2C_CONSTANT_POOL_PROP_TAG, tag,
                                                  J2C_CONSTANT_POOL_PROP_VALUE, value,
                                                  NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_Float)
@@ -1395,7 +1382,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                                J2C_CONSTANT_POOL_PROP_TAG, tag,
                                                J2C_CONSTANT_POOL_PROP_VALUE, value,
                                                NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
 
@@ -1413,8 +1400,8 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                               J2C_CONSTANT_POOL_PROP_VALUE, value,
                                               NULL);
 
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info)); /* 8-byte constants take up two entries in the constant pool */
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info)); /* 8-byte constants take up two entries in the constant pool */
             i ++;
         }
 
@@ -1479,8 +1466,8 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                                 J2C_CONSTANT_POOL_PROP_VALUE, value,
                                                 NULL);
 
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info)); /* 8-byte constants take up two entries in the constant pool */
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info)); /* 8-byte constants take up two entries in the constant pool */
             i ++;
         }
 
@@ -1497,7 +1484,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                        J2C_CONSTANT_POOL_PROP_NAME_INDEX, name_index,
                                        J2C_CONSTANT_POOL_PROP_DESCRIPTOR_INDEX, descriptor_index,
                                        NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_Utf8)
@@ -1531,7 +1518,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                               J2C_CONSTANT_POOL_PROP_BYTES, normal,
                                               NULL);
             g_free (normal);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_MethodHandle)
@@ -1547,7 +1534,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                         J2C_CONSTANT_POOL_PROP_REFERENCE_KIND, reference_kind,
                                         J2C_CONSTANT_POOL_PROP_REFERENCE_INDEX, reference_index,
                                         NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_MethodType)
@@ -1559,7 +1546,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                                     J2C_CONSTANT_POOL_PROP_TAG, tag,
                                                     J2C_CONSTANT_POOL_PROP_DESCRIPTOR_INDEX, descriptor_index,
                                                     NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else if (tag == CONSTANT_InvokeDynamic)
@@ -1575,7 +1562,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
                                          J2C_CONSTANT_POOL_PROP_BOOTSTRAP_METHOD_ATTR_INDEX, bootstrap_method_attr_index,
                                          J2C_CONSTANT_POOL_PROP_NAME_AND_TYPE_INDEX, name_and_type_index,
                                          NULL);
-            j2c_constant_pool_ptr_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
+            j2c_object_array_add (pool, J2C_CONSTANT_POOL_ITEM (info));
         }
 
         else
@@ -1596,7 +1583,7 @@ j2c_constant_pool_new (GDataInputStream *in, GError **error)
     goto cleanup;
 
 pool_error:
-    g_ptr_array_free (pool, TRUE);
+    g_object_unref (pool);
 
 cleanup:
     if (tmp_error) g_propagate_error (error, tmp_error);
@@ -1624,18 +1611,19 @@ j2c_constant_pool_get (J2cConstantPool *self, const guint16 index, GError **erro
         return NULL;
     }
 
-    if (index < 1 || index > self->pool->len || index >= self->count)
+    guint len = j2c_object_array_length(self->pool);
+    if (index < 1 || index > len || index >= self->count)
     {
         g_set_error (error,
                      J2C_CONSTANT_POOL_ERROR,
                      J2C_CONSTANT_POOL_INDEX_ERROR,
                      "%u is not a valid index for this pool { count = %u; length = %u }",
-                     index, self->count, self->pool->len);
+                     index, self->count, len);
         return NULL;
     }
 
-    J2cConstantPoolItem *ret = g_object_ref (self->pool->pdata[index-1]);
-    return ret;
+    J2cConstantPoolItem *ret = j2c_object_array_get (self->pool, index - 1);
+    return g_object_ref(ret);
 }
 
 gchar *

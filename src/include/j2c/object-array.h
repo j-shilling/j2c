@@ -13,6 +13,8 @@ J2cObjectArray *j2c_object_array_sized_new (guint size);
 J2cObjectArray *j2c_object_array_new (void);
 
 void j2c_object_array_add (J2cObjectArray *self, gpointer item);
+guint j2c_object_array_length (J2cObjectArray *self);
+gpointer j2c_object_array_get (J2cObjectArray *self, const guint index);
 
 G_END_DECLS
 

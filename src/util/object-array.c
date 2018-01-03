@@ -124,3 +124,30 @@ j2c_object_array_add (J2cObjectArray *self, gpointer item)
   g_ptr_array_add (self->array, item);
   g_mutex_unlock (self->mutex);
 }
+
+guint
+j2c_object_array_length (J2cObjectArray *self)
+{
+  g_return_val_if_fail (self != NULL, 0);
+  g_return_val_if_fail (self->array != NULL, 0);
+
+  g_mutex_lock (self->mutex);
+  guint ret = self->array->len;
+  g_mutex_unlock (self->mutex);
+
+  return ret;
+}
+
+gpointer
+j2c_object_array_get (J2cObjectArray *self, const guint index)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  g_return_val_if_fail (self->array != NULL, NULL);
+  g_return_val_if_fail (index < self->array->len, NULL);
+
+  g_mutex_lock (self->mutex);
+  gpointer ret = self->array->pdata[index];
+  g_mutex_unlock (self->mutex);
+
+  return ret;
+}
