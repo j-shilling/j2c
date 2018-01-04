@@ -146,6 +146,7 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
       if (tmp_error) goto error;
 
       j2c_object_array_add (fields, field);
+      g_object_unref (field);
     }
 
   methods_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
@@ -157,6 +158,7 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
       if (tmp_error) goto error;
 
       j2c_object_array_add (methods, method);
+      g_object_unref (method);
     }
 
   attributes_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
@@ -175,6 +177,7 @@ j2c_compilation_unit_class_new (J2cIndexedFile *file, GError **error)
       else
         {
           j2c_object_array_add (attributes, attribute);
+          g_object_unref (attribute);
         }
     }
 
@@ -197,6 +200,8 @@ error:
     g_propagate_error (error, tmp_error);
 
   g_object_unref (in);
+  if (constant_pool)
+    g_object_unref (constant_pool);
   if (interfaces)
     g_array_unref (interfaces);
   if (fields)

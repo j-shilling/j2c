@@ -239,6 +239,9 @@ main (gint argc, gchar *argv[])
     }
   g_thread_pool_free (pool, FALSE, TRUE);
   j2c_readable_list_destroy (target_files);
+
+  j2c_index_delete (class_path_index);
+  j2c_index_delete (target_index);
 }
 
 static gboolean

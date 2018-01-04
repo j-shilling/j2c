@@ -17,7 +17,7 @@ j2c_readable_list_new (void)
   return ret;
 }
 
-void 
+void
 j2c_readable_list_destroy (J2cReadableList *self)
 {
   g_return_if_fail (NULL != self);
@@ -26,6 +26,8 @@ j2c_readable_list_destroy (J2cReadableList *self)
   g_slist_free_full (self->list, g_object_unref);
   g_mutex_unlock (&self->m);
   g_mutex_clear (&self->m);
+
+  g_free (self);
 }
 
 void
@@ -121,7 +123,7 @@ j2c_readable_list_add (J2cReadableList *self, gchar const *const filename)
 				   g_file_get_path (child));
 		  continue;
 		}
-	     
+
 	      j2c_readable_list_add_file (self, child);
 	    }
 	}

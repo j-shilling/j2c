@@ -121,7 +121,7 @@ j2c_object_array_add (J2cObjectArray *self, gpointer item)
   g_return_if_fail (G_IS_OBJECT (item));
 
   g_mutex_lock (self->mutex);
-  g_ptr_array_add (self->array, item);
+  g_ptr_array_add (self->array, g_object_ref(item));
   g_mutex_unlock (self->mutex);
 }
 
