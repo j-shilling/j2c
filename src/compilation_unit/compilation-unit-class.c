@@ -393,18 +393,27 @@ j2c_compilation_unit_class_set_property (GObject *object, guint property_id, con
       break;
 
     case PROP_INTERFACES:
+      if (self->interfaces)
+        g_array_unref (self->interfaces);
       self->interfaces = g_value_get_boxed (value);
+      self->interfaces = g_array_ref (self->interfaces);
       break;
 
     case PROP_FIELDS:
+      if (self->fields)
+        g_object_unref (self->fields);
       self->fields = g_value_dup_object (value);
       break;
 
     case PROP_METHODS:
+      if (self->methods)
+        g_object_unref (self->methods);
       self->methods = g_value_dup_object (value);
       break;
 
     case PROP_ATTRIBUTES:
+      if (self->attributes)
+        g_object_unref (self->attributes);
       self->attributes = g_value_dup_object (value);
       break;
 
