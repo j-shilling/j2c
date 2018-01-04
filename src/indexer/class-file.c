@@ -106,7 +106,6 @@ j2c_class_file_initable_init (GInitable *initable, GCancellable *cancellable, GE
 		   J2C_INDEXED_FILE_ERROR,
 		   J2C_INDEXED_FILE_TYPE_ERROR,
 		   "This is not a class file.");
-      g_object_unref (stream);
       return FALSE;
     }
 
