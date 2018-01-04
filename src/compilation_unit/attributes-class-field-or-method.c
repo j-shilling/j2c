@@ -1,4 +1,5 @@
 #include <j2c/attributes.h>
+#include <j2c/object-array.h>
 
 struct _J2cAttributeSynthetic
 {
@@ -94,7 +95,7 @@ struct _J2cElementValue
 
       guint16 class_info_index;
       J2cAnnotation *annotation_value;
-      GPtrArray *array_value; /* J2cElementValue[] */
+      J2cObjectArray *array_value; /* J2cElementValue[] */
     };
 };
 
@@ -213,7 +214,7 @@ j2c_element_value_new_from_stream (GDataInputStream *in, GError **error)
   GError *tmp_error = NULL;
   J2cElementValue *ret = NULL;
   J2cAnnotation *annotation_value = NULL;
-  GPtrArray *array_value = NULL;
+  J2cObjectArray *array_value = NULL;
 
   guint8 tag = g_data_input_stream_read_byte (in, NULL, &tmp_error);
   if (tmp_error) goto end;
@@ -230,13 +231,12 @@ j2c_element_value_new_from_stream (GDataInputStream *in, GError **error)
         num_values = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
         if (tmp_error) goto end;
 
-        array_value = g_ptr_array_sized_new (num_values);
-        g_ptr_array_set_free_func (array_value, g_object_unref);
+        array_value = j2c_object_array_sized_new (num_values);
         for (gint i = 0; i < num_values; i++)
           {
             J2cElementValue *value = j2c_element_value_new_from_stream(in, &tmp_error);
             if (tmp_error) goto end;
-            g_ptr_array_add (array_value, value);
+            j2c_object_array_add (array_value, value);
           }
         ret = g_object_new (J2C_TYPE_ELEMENT_VALUE,
                             J2C_ATTRIBUTE_PROP_TAG, tag,
@@ -283,7 +283,7 @@ j2c_element_value_new_from_stream (GDataInputStream *in, GError **error)
 end:
   if (tmp_error) g_propagate_error (error, tmp_error);
   if (annotation_value) g_object_unref (annotation_value);
-  if (array_value) g_ptr_array_unref (array_value);
+  if (array_value) g_object_unref (array_value);
   return ret;
 }
 
@@ -451,11 +451,11 @@ j2c_element_value_class_init (J2cElementValueClass *klass)
                                                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (object_class, PROP_ARRAY_VALUE,
-                                   g_param_spec_boxed (J2C_ATTRIBUTE_PROP_ARRAY_VALUE,
-                                                       J2C_ATTRIBUTE_PROP_ARRAY_VALUE,
-                                                       "",
-                                                       G_TYPE_PTR_ARRAY,
-                                                       G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+                                   g_param_spec_object (J2C_ATTRIBUTE_PROP_ARRAY_VALUE,
+                                                        J2C_ATTRIBUTE_PROP_ARRAY_VALUE,
+                                                        "",
+                                                        J2C_TYPE_OBJECT_ARRAY,
+                                                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
 static void j2c_attribute_synthetic_init (J2cAttributeSynthetic *self) { return; }
@@ -539,10 +539,7 @@ j2c_element_value_dispose (GObject *object)
   else if (self->tag == '[')
     {
       if (self->array_value)
-        {
-          g_ptr_array_unref (self->array_value);
-          self->array_value = NULL;
-        }
+        g_clear_object (&self->array_value);
     }
 
   G_OBJECT_CLASS (j2c_element_value_parent_class)->dispose (object);
@@ -702,8 +699,8 @@ j2c_element_value_set_property (GObject *object, guint property_id, const GValue
         if (property_id == PROP_ARRAY_VALUE)
           {
             if (self->array_value)
-              g_ptr_array_unref (self->array_value);
-            self->array_value = g_value_get_boxed (value);
+              g_object_unref (self->array_value);
+            self->array_value = g_value_dup_object (value);
           }
         else
           goto invalid_for_this_tag;
@@ -860,7 +857,7 @@ j2c_element_value_get_property (GObject *object, guint property_id, GValue *valu
         break;
       case '[':
         if (property_id == PROP_ARRAY_VALUE)
-          g_value_set_boxed (value, self->array_value);
+          g_value_set_object (value, self->array_value);
         else
           G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
