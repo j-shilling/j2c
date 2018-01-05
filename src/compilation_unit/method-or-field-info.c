@@ -100,6 +100,7 @@ j2c_method_or_field_info_from_class_file (GType type, GDataInputStream *in, J2cC
       else
         {
           j2c_object_array_add (attributes, attribute);
+          g_object_unref (attribute);
         }
     }
 

@@ -64,7 +64,9 @@ j2c_logger_set_file (GFile *file)
 
   logger.file = file;
 
- j2c_logger_fine ("Logging to file \'%s\'", g_file_get_path (logger.file));
+  gchar *path = g_file_get_path (logger.file);
+  j2c_logger_fine ("Logging to file \'%s\'", path);
+  g_free (path);
 }
 
 void
@@ -81,7 +83,7 @@ j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...)
   gchar *msg = NULL;
   g_vasprintf (&msg, __fmt, args);
 
-  gboolean needs_new_line = ('\n' != 
+  gboolean needs_new_line = ('\n' !=
 			     msg[strlen(msg) - 1]);
   gchar *text = g_strdup_printf (needs_new_line ? "%s%s\n" : "%s%s",
 				 levels_table[level].preamble,
@@ -99,23 +101,23 @@ j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...)
 						     NULL,
 						     &error);
       if (!ostream)
-	{
-	  j2c_logger_set_file (NULL);
-	  j2c_logger_warning ("Could not log to file: %s", error->message);
-	  g_error_free (error);
-	}
+        {
+          j2c_logger_set_file (NULL);
+          j2c_logger_warning ("Could not log to file: %s", error->message);
+          g_error_free (error);
+        }
       else
-	{
-	  gchar *buffer = g_strdup (text);
-	  gsize count = strlen (buffer);
-	  g_output_stream_write_async (G_OUTPUT_STREAM(ostream),
-				       buffer,
-				       count,
-				       G_PRIORITY_DEFAULT,
-				       NULL,
-				       j2c_logger_file_write_callback,
-				       buffer);
-	}
+        {
+          gchar *buffer = g_strdup (text);
+          gsize count = strlen (buffer);
+          g_output_stream_write_async (G_OUTPUT_STREAM(ostream),
+                           buffer,
+                           count,
+                           G_PRIORITY_DEFAULT,
+                           NULL,
+                           j2c_logger_file_write_callback,
+                           buffer);
+        }
 
     }
 
@@ -141,16 +143,16 @@ j2c_logger_heading (gchar const *const heading)
   while (i < max)
     {
       if (ch != '\0')
-	g_printf ("%c", g_unichar_toupper (ch));
+        g_printf ("%c", g_unichar_toupper (ch));
       else
-	g_printf (" ");
+        g_printf (" ");
       i++;
 
       if (ch != '\0')
-	{
-	  text = g_utf8_next_char (text);
-	  ch = g_utf8_get_char (text);
-	}
+        {
+          text = g_utf8_next_char (text);
+          ch = g_utf8_get_char (text);
+        }
     }
 
   g_printf ("  *\n");

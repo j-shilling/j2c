@@ -49,19 +49,21 @@ j2c_zip_input_stream_close_fn (GInputStream *stream, GCancellable *cancellable,
 J2cZipInputStream *
 j2c_zip_input_stream_open (GFile *file, guint64 index, GError **error)
 {
-  gchar *path = g_file_get_path (file);
   gint ze = ZIP_ER_OK;
 
   GError *tmp_error = NULL;
+  gchar *path = g_file_get_path (file);
   zip_t *zip = zip_open (path, ZIP_RDONLY, &ze);
   if (!zip)
     {
-      j2c_zip_input_stream_set_error_from_code (ze, g_file_get_path (file), &tmp_error);
+      j2c_zip_input_stream_set_error_from_code (ze, path, &tmp_error);
+      g_free (path);
       if (tmp_error)
-	g_propagate_error (error, tmp_error);
+	    g_propagate_error (error, tmp_error);
 
       return NULL;
     }
+  g_free (path);
 
   zip_file_t *zfile = zip_fopen_index (zip, index, ZIP_FL_UNCHANGED);
 

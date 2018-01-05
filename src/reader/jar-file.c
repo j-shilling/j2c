@@ -196,13 +196,15 @@ j2c_jar_member_constructed (GObject *object)
 {
   J2cJarMember *self = J2C_JAR_MEMBER (object);
 
-  zip_t *zip = zip_open (g_file_get_path (self->file), ZIP_RDONLY, NULL);
+  gchar *path = g_file_get_path (self->file);
+  zip_t *zip = zip_open (path, ZIP_RDONLY, NULL);
   g_return_if_fail (NULL != zip);
 
   const gchar *name = zip_get_name (zip, self->index, ZIP_FL_ENC_GUESS);
   g_return_if_fail (NULL != name);
 
-  self->name = g_strdup_printf ("%s:%s", g_file_get_path (self->file), name);
+  self->name = g_strdup_printf ("%s:%s", path, name);
+  g_free (path);
   zip_close (zip);
 }
 
@@ -215,7 +217,8 @@ j2c_jar_file_dispose (GObject *object)
 {
   J2cJarFile *self = J2C_JAR_FILE (object);
 
-  g_clear_object (&self->file);
+  if (self->file)
+    g_clear_object (&self->file);
 
   G_OBJECT_CLASS (j2c_jar_file_parent_class)->dispose (object);
 }
@@ -225,7 +228,13 @@ j2c_jar_member_dispose (GObject *object)
 {
   J2cJarMember *self = J2C_JAR_MEMBER (object);
 
-  g_clear_object (&self->file);
+  if (self->file)
+    g_clear_object (&self->file);
+  if (self->name)
+    {
+      g_free (self->name);
+      self->name = NULL;
+    }
 
   G_OBJECT_CLASS (j2c_jar_file_parent_class)->dispose (object);
 }
@@ -349,6 +358,7 @@ j2c_jar_file_initable_init (GInitable *initable, GCancellable *cancellable, GErr
   if (!zip)
     {
       j2c_zip_input_stream_set_error_from_code (zerror, path, error);
+      g_free (path);
       return FALSE;
     }
 
@@ -357,9 +367,11 @@ j2c_jar_file_initable_init (GInitable *initable, GCancellable *cancellable, GErr
     {
       zip_error_t *zer = zip_get_error (zip);
       j2c_zip_input_stream_set_error (zer, path, error);
+      g_free (path);
       return FALSE;
     }
 
+  g_free (path);
   return TRUE;
 }
 

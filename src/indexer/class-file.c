@@ -129,7 +129,7 @@ static gchar *
 j2c_class_file_get_name (J2cIndexedFile *self)
 {
   g_return_val_if_fail (NULL != self, NULL);
-  return J2C_CLASS_FILE (self)->name;
+  return g_strdup (J2C_CLASS_FILE (self)->name);
 }
 
 static J2cFileType

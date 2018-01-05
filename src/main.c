@@ -57,16 +57,18 @@ main (gint argc, gchar *argv[])
 
 #ifdef G_OS_WIN32
   gchar **args = g_win32_get_command_line();
+  if (!g_option_context_parse_strv (context, &args, &error))
 #else
-  gchar **args = g_strdupv (argv);
-#endif
-
+  gchar **args = argv;
   if (!g_option_context_parse (context, &argc, &args, &error))
+#endif
     {
       j2c_logger_fatal ("Error parsing arguments: %s", error->message);
       exit (EXIT_FAILURE);
     }
+#ifdef G_OS_WIN32
   g_strfreev (args);
+#endif
   g_option_context_free (context);
 
   j2c_logger_finest ("Command line arguments parsed.");

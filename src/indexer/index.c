@@ -69,10 +69,10 @@ j2c_index_insert (J2cIndex *self, J2cIndexedFile *item)
   else
     {
       if (g_tree_lookup (*tree, key))
-	{
-	  j2c_logger_warning ("Cannot add %s to an index more than once", key);
-	  goto end;
-	}
+        {
+          j2c_logger_warning ("Cannot add %s to an index more than once", key);
+          goto end;
+        }
     }
 
   g_tree_insert (*tree, key, item);
@@ -128,6 +128,8 @@ j2c_index_free_nodes (gpointer key, gpointer data, gpointer user_data)
 {
   if (data)
     g_object_unref (data);
+  if (key)
+    g_free (key);
   return FALSE;
 }
 

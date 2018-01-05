@@ -237,6 +237,7 @@ j2c_element_value_new_from_stream (GDataInputStream *in, GError **error)
             J2cElementValue *value = j2c_element_value_new_from_stream(in, &tmp_error);
             if (tmp_error) goto end;
             j2c_object_array_add (array_value, value);
+            g_object_unref (value);
           }
         ret = g_object_new (J2C_TYPE_ELEMENT_VALUE,
                             J2C_ATTRIBUTE_PROP_TAG, tag,

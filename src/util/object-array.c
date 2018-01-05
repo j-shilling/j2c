@@ -58,6 +58,7 @@ j2c_object_array_dispose (GObject *object)
 
   g_mutex_unlock (self->mutex);
   g_mutex_clear (self->mutex);
+  g_free (self->mutex);
   self->mutex = NULL;
 }
 
