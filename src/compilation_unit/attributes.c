@@ -591,6 +591,7 @@ j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 leng
               ret = g_object_new (J2C_TYPE_ATTRIBUTE_ANNOTATION_DEFAULT,
                                   J2C_ATTRIBUTE_PROP_DEFAULT_VALUE, default_value,
                                   NULL);
+              g_object_unref (default_value);
             }
           else if (g_strcmp0 (name, J2C_METHOD_PARAMETERS) == 0)
             {
