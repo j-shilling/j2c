@@ -152,9 +152,46 @@ typedef enum
   j2c_isub              = 0x64, /* int subtract | ..., x, y -> result */
   j2c_iushr             = 0x7C, /* x >> y w/ 0 ex. | ..., x, y - > result */
   j2c_ixor              = 0x82, /* x | (bitwise xor ) y | ...., x, y -> result */
+  j2c_jsr               = 0xA8, /* jump subroutine | jsr byte1 byte2 | ... -> addr */
+  j2c_jsr_w             = 0xC9, /* jump subroutine wide | jsr byte1 byte2 byte3 byte 4 | ... -> addr */
+  j2c_l2d               = 0x8A, /* cast long to double */
+  j2c_l2f               = 0x89, /* cast long to float */
+  j2c_l2i               = 0x88, /* cast long to int */
+  j2c_ladd              = 0x61, /* long add | ..., x, y -> result */
+  j2c_laload            = 0x2F, /* load long from array | ..., arrayref, index -> value */
+  j2c_land              = 0x7F, /* long & long | ..., x, y -> result */
+  j2c_lastore           = 0x50, /* store into long array | ..., arrayref, index, value -> */
+  j2c_lcmp              = 0x94, /* long compare | ..., x, y -> result */
+  j2c_lconst_0          = 0x09, /* push (long) 0 */
+  j2c_lconst_1          = 0x0A, /* push (long) 1 */
+  j2c_ldc               = 0x12, /* load from constant pool | ldc index | ..., -> value */
+  j2c_ldc_w             = 0x13, /* load from constant pool (wide) | ldc index1 index2 | ..., -> value */
+  j2c_ldc2_w            = 0x14, /* load long or double from constant pool (wide) | ldc index1 index2 | ..., -> value */
+  j2c_ldiv              = 0x6D, /* long divide | ..., x, y -> result */
+  j2c_lload             = 0x16, /* load long from local variable | lload index | ..., -> value */
+  j2c_lload_0           = 0x1E, /* lload 0 */
+  j2c_lload_1           = 0x1F, /* lload 1 */
+  j2c_lload_2           = 0x20, /* lload 2 */
+  j2c_lload_3           = 0x21, /* lload 3 */
+  j2c_lmul              = 0x69, /* long multiply | ..., x, y -> result */
+  j2c_lneg              = 0x75, /* long negate | ..., x -> result */
+  j2c_lookupswitch      = 0xAB, /* access jump table | padding guint32 default guint18 npairs ... pairs | ..., key-> */
+  j2c_lor               = 0x81, /* bitwise inclusive or | ...x, y, -> result */
+  j2c_lrem              = 0x71, /* remainder long | ..., x, y -> result */
+  j2c_lreturn           = 0xAD, /* return long */
+  j2c_lshl              = 0x79, /* long << long | ..., x, y -> result */
+  j2c_lshr              = 0x7B, /* long >> long | .., x, y -> result */
+  j2c_lstore            = 0x37, /* store long in local variable | lstore index | ... value -> */
+  j2c_lstore_0          = 0x3F, /* lstore 0 */
+  j2c_lstore_1          = 0x40, /* lstore 1 */
+  j2c_lstore_2          = 0x41, /* lstore 2 */
+  j2c_lstore_3          = 0x42, /* lstore 3 */
+  j2c_lsub              = 0x65, /* long subtract | ..., x, y -> result */
+  j2c_lushr             = 0x7D, /* long >> long 0-ex | ..., x, y -> result */
+  j2c_lxor              = 0x83, /* bitwise exclusive or | ..., x, y -> result */
 } J2cOpcode;
 
-guint j2c_opcode_operand_count (const J2cOpcode opcode);
+gint j2c_opcode_operand_count (const J2cOpcode opcode);
 guint16 j2c_operand_to_index16 (const guint8 byte1, const guint8 byte2);
 
 #endif // __OPCODES_H__

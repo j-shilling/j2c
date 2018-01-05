@@ -1,6 +1,6 @@
 #include <j2c/opcodes.h>
 
-guint
+gint
 j2c_opcode_operand_count (const J2cOpcode opcode)
 {
   switch (opcode)
@@ -43,6 +43,14 @@ j2c_opcode_operand_count (const J2cOpcode opcode)
       case j2c_invokestatic:    return 2;
       case j2c_invokevirtual:   return 2;
       case j2c_istore:          return 1;
+      case j2c_jsr:             return 2;
+      case j2c_jsr_w:           return 4;
+      case j2c_ldc:             return 1;
+      case j2c_ldc_w:           return 2;
+      case j2c_ldc2_w:          return 2;
+      case j2c_lload:           return 1;
+      case j2c_lookupswitch:    return -1; // signal var-length instruction
+      case j2c_lstore:          return 1;
       default:                  return 0;
     }
 }
