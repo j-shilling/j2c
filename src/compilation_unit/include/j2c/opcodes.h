@@ -189,7 +189,37 @@ typedef enum
   j2c_lsub              = 0x65, /* long subtract | ..., x, y -> result */
   j2c_lushr             = 0x7D, /* long >> long 0-ex | ..., x, y -> result */
   j2c_lxor              = 0x83, /* bitwise exclusive or | ..., x, y -> result */
+  j2c_monitorenter      = 0xC2, /* Enter monitor for object | ..., objectref -> */
+  j2c_monitorexit       = 0xC3, /* Exit monitor for object | ..., objectref -> */
+  j2c_multianewarray    = 0xC5, /* Create new multidemensional array | multianewarray index1 index2 dimentions | count1, [count 2, ...]] -> arrayref */
+  j2c_new               = 0xBB, /* Create new object | new index1 index2 | ..., -> objectref */
+  j2c_newarray          = 0xBC, /* Create new array | newarray J2cAType | ..., count -> arrayref */
+  j2c_nop               = 0x00, /* Do nothing */
+  j2c_pop               = 0x57, /* Pop top of the stack | ..., x -> */
+  j2c_pop2              = 0x58, /* Pop two off the stack | ..., x, y, -> */
+  j2c_putfield          = 0xB5, /* Set field in object | putfield index1 index2 | ..., objectref, value -> */
+  j2c_putstatic         = 0xB3, /* Set static field in class | putstatic index1 index2 | ..., value -> */
+  j2c_ret               = 0xA9, /* Return from subroutine | ret index */
+  j2c_return            = 0xB1, /* Return void from method */
+  j2c_saload            = 0x35, /* Load short from array | array ref, index -> value */
+  j2c_sastore           = 0x56, /* Store into short array | arrayref, index, value -> */
+  j2c_sipush            = 0x11, /* Push short | sipush byte1 byte2 | ..., -> value */
+  j2c_swap              = 0x5F, /* Swap top two stack values | ..., x, y -> y, x */
+  j2c_tableswitch       = 0xAA, /* Access jump tale by index and jump | tableswitch pad guint32 default guint32 lowbytes guint32 highbytes jump offsets | ..., index -> */
+  j2c_wide              = 0xC4  /* Extend local variable index | wide <opcode> index1 index2 [const1 const2] */
 } J2cOpcode;
+
+typedef enum
+{
+  T_BOOLEAN = 4,
+  T_CHAR    = 5,
+  T_FLOAT   = 6,
+  T_DOUBLE  = 7,
+  T_BYTE    = 8,
+  T_SHORT   = 9,
+  T_INT     = 10,
+  T_LONG    = 11
+} J2cAType;
 
 gint j2c_opcode_operand_count (const J2cOpcode opcode);
 guint16 j2c_operand_to_index16 (const guint8 byte1, const guint8 byte2);

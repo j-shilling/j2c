@@ -51,6 +51,15 @@ j2c_opcode_operand_count (const J2cOpcode opcode)
       case j2c_lload:           return 1;
       case j2c_lookupswitch:    return -1; // signal var-length instruction
       case j2c_lstore:          return 1;
+      case j2c_multianewarray:  return 3;
+      case j2c_new:             return 2;
+      case j2c_newarray:        return 1;
+      case j2c_putfield:        return 2;
+      case j2c_putstatic:       return 2;
+      case j2c_ret:             return 1;
+      case j2c_sipush:          return 2;
+      case j2c_tableswitch:     return -1; // signal var-length instruction
+      case j2c_wide:            return -1; // signal var-length instruction
       default:                  return 0;
     }
 }
