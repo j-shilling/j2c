@@ -2,6 +2,21 @@
 #define __OPCODES_H__
 
 #include <glib.h>
+#include <glib-object.h>
+#include <gio/gio.h>
+
+G_BEGIN_DECLS
+
+#define J2C_OPCODE_ERROR	g_quark_from_static_string ("j2c-opcode")
+#define J2C_TYPE_OPCODE     j2c_opcode_get_type ()
+#define J2C_TYPE_BYTE_INSTRUCTION    j2c_byte_instruction_get_type ()
+G_DECLARE_FINAL_TYPE(J2cByteInstruction, j2c_byte_instruction, J2C, BYTE_INSTRUCTION, GObject)
+
+typedef enum
+{
+  J2C_INVALID_OPCODE_ERROR,
+  J2C_STREAM_TYPE_ERROR
+} J2cOpcodeError;
 
 typedef enum
 {
@@ -221,7 +236,11 @@ typedef enum
   T_LONG    = 11
 } J2cAType;
 
-gint j2c_opcode_operand_count (const J2cOpcode opcode);
-guint16 j2c_operand_to_index16 (const guint8 byte1, const guint8 byte2);
+GType j2c_opcode_get_type (void);
+J2cOpcode j2c_byte_instruction_opcode (J2cByteInstruction *self);
+guint8 j2c_byte_instruction_operand (J2cByteInstruction *self, const guint index);
+J2cByteInstruction *j2c_byte_instruction_new_from_stream (GInputStream *in, GError **error);
+
+G_END_DECLS
 
 #endif // __OPCODES_H__
