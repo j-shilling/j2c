@@ -25,6 +25,11 @@ G_DECLARE_FINAL_TYPE (J2cMethodInfo, j2c_method_info, J2C, METHOD_INFO, J2cMetho
 J2cFieldInfo *j2c_field_info_from_class_file (GDataInputStream *in, J2cConstantPool *cp, GError **error);
 J2cMethodInfo *j2c_method_info_from_class_file (GDataInputStream *in, J2cConstantPool *cp, GError **error);
 
+static gchar const *const METHOD_OR_FIELD_PROP_ACCESS_FLAGS = "access-flags";
+static gchar const *const METHOD_OR_FIELD_PROP_NAME_INDEX = "name-index";
+static gchar const *const METHOD_OR_FIELD_PROP_DESCRIPTOR_INDEX = "descriptor-index";
+static gchar const *const METHOD_OR_FIELD_PROP_ATTRIBUTES = "attributes";
+
 G_END_DECLS
 
 #endif // __FIELD_INFO_H__

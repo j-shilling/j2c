@@ -401,6 +401,16 @@ j2c_byte_instruction_operand (J2cByteInstruction *self, const guint index)
   return data[index];
 }
 
+gsize
+j2c_byte_instruction_operand_size (J2cByteInstruction *self)
+{
+  g_return_val_if_fail (self != NULL, 0);
+  if (self->operands == NULL)
+    return 0;
+  else
+    return g_bytes_get_size (self->operands);
+}
+
 J2cByteInstruction *
 j2c_byte_instruction_new_from_stream (GInputStream *in, GError **error)
 {

@@ -12,7 +12,8 @@ libcompilationunit_a_SOURCES = 	modified-utf8.c \
 				attributes-class-field-or-method.c \
 				attributes-any.c \
 				method-or-field-info.c \
-				opcodes.c
+				opcodes.c \
+				byte-code-method.c
 						
 libcompilationunit_a_CFLAGS = $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GOBJECT_CFLAGS) \
 						-I$(top_srcdir)/src/include \

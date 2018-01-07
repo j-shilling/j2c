@@ -150,5 +150,5 @@ j2c_object_array_get (J2cObjectArray *self, const guint index)
   gpointer ret = self->array->pdata[index];
   g_mutex_unlock (self->mutex);
 
-  return ret;
+  return g_object_ref (ret);
 }

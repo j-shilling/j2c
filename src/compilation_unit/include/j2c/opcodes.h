@@ -239,6 +239,7 @@ typedef enum
 GType j2c_opcode_get_type (void);
 J2cOpcode j2c_byte_instruction_opcode (J2cByteInstruction *self);
 guint8 j2c_byte_instruction_operand (J2cByteInstruction *self, const guint index);
+gsize j2c_byte_instruction_operand_size (J2cByteInstruction *self);
 J2cByteInstruction *j2c_byte_instruction_new_from_stream (GInputStream *in, GError **error);
 
 G_END_DECLS

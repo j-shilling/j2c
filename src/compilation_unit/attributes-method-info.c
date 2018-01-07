@@ -8,7 +8,7 @@ struct _J2cAttributeCode
   guint16 max_stack;
   guint16 max_locals;
 
-  GByteArray *code;
+  GBytes *code;
   GPtrArray *exception_table; /* J2cExceptionInfo[] */
   GPtrArray *attributes; /* J2cAttribute*[] */
 };
@@ -177,7 +177,7 @@ j2c_attribute_code_class_init (J2cAttributeCodeClass *klass)
 				   g_param_spec_boxed (J2C_ATTRIBUTE_PROP_CODE,
 						      J2C_ATTRIBUTE_PROP_CODE,
 						      "",
-						      G_TYPE_BYTE_ARRAY,
+						      G_TYPE_BYTES,
 						      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
   g_object_class_install_property (object_class, PROP_EXCEPTION_TABLE,
 				   g_param_spec_boxed (J2C_ATTRIBUTE_PROP_EXCEPTION_TABLE,
@@ -370,7 +370,7 @@ j2c_attribute_code_dispose (GObject *object)
 
   if (self->code)
     {
-      g_byte_array_unref (self->code);
+      g_bytes_unref (self->code);
       self->code = NULL;
     }
   if (self->exception_table)
@@ -490,26 +490,24 @@ j2c_attribute_code_set_property (GObject *object, guint property_id, const GValu
       break;
     case PROP_CODE:
       if (self->code)
-	{
-	  g_byte_array_unref (self->code);
-	  self->code = NULL;
-	}
-      self->code = g_value_get_boxed (value);
+        g_bytes_unref (self->code);
+      GBytes *code = g_value_get_boxed (value);
+      self->code = g_bytes_ref (code);
       break;
     case PROP_EXCEPTION_TABLE:
       if (self->exception_table)
-	{
-	  g_ptr_array_unref (self->exception_table);
-	  self->exception_table = NULL;
-	}
+        {
+          g_ptr_array_unref (self->exception_table);
+          self->exception_table = NULL;
+        }
       self->exception_table = g_value_get_boxed (value);
       break;
     case PROP_ATTRIBUTES:
       if (self->attributes)
-	{
-	  g_ptr_array_unref (self->attributes);
-	  self->attributes = NULL;
-	}
+        {
+          g_ptr_array_unref (self->attributes);
+          self->attributes = NULL;
+        }
       self->attributes = g_value_get_boxed (value);
       break;
     default:

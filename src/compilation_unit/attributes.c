@@ -469,7 +469,7 @@ j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 leng
                   goto end;
                 }
 
-              GByteArray *code = g_byte_array_new_take (bytes, code_length);
+              GBytes *code = g_bytes_new_take (bytes, code_length);
 
               guint16 exception_table_length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
               if (tmp_error) goto end;
