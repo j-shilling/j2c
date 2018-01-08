@@ -34,6 +34,7 @@ static void j2c_compilation_unit_class_get_property (GObject *object, guint prop
 /* J2cCompilationUnit methods */
 static void j2c_compilation_unit_interface_init (J2cCompilationUnitInterface *iface);
 static gchar const *j2c_compilation_unit_class_name (J2cCompilationUnit *compilation_unit);
+static J2cObjectArray *j2c_compilation_unit_class_get_type_dependencies (J2cCompilationUnit *compilation_unit);
 
 G_DEFINE_TYPE_WITH_CODE (J2cCompilationUnitClass, j2c_compilation_unit_class, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (J2C_TYPE_COMPILATION_UNIT, j2c_compilation_unit_interface_init))
@@ -305,6 +306,7 @@ static void
 j2c_compilation_unit_interface_init (J2cCompilationUnitInterface *iface)
 {
   iface->name = j2c_compilation_unit_class_name;
+  iface->get_type_dependencies = j2c_compilation_unit_class_get_type_dependencies;
 }
 
 static void
@@ -490,3 +492,10 @@ j2c_compilation_unit_class_name (J2cCompilationUnit *compilation_unit)
 {
   return J2C_COMPILATION_UNIT_CLASS (compilation_unit)->name;
 }
+
+static J2cObjectArray *
+j2c_compilation_unit_class_get_type_dependencies (J2cCompilationUnit *compilation_unit)
+{
+  return NULL;
+}
+

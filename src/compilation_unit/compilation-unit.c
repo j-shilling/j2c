@@ -29,3 +29,12 @@ j2c_compilation_unit_name (J2cCompilationUnit *self)
   return iface->name (self);
 }
 
+J2cObjectArray *
+j2c_compilation_unit_get_type_dependencies (J2cCompilationUnit *self)
+{
+  g_return_val_if_fail (J2C_IS_COMPILATION_UNIT (self), NULL);
+  J2cCompilationUnitInterface *iface = J2C_COMPILATION_UNIT_GET_IFACE (self);
+  return iface->get_type_dependencies (self);
+}
+
+

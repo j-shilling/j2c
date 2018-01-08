@@ -5,6 +5,7 @@
 #include <glib-object.h>
 
 #include <j2c/indexed-file.h>
+#include <j2c/object-array.h>
 
 G_BEGIN_DECLS
 
@@ -16,10 +17,12 @@ struct _J2cCompilationUnitInterface
   GTypeInterface parent_iface;
 
   gchar const *(*name) (J2cCompilationUnit *self);
+  J2cObjectArray *(*get_type_dependencies) (J2cCompilationUnit *self);
 };
 
 J2cCompilationUnit *j2c_compilation_unit_new (J2cIndexedFile *file, GError **error);
 gchar const *j2c_compilation_unit_name (J2cCompilationUnit *self);
+J2cObjectArray *j2c_compilation_unit_get_type_dependencies (J2cCompilationUnit *self);
 
 G_END_DECLS
 
