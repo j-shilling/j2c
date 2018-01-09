@@ -1,5 +1,5 @@
-
 #include <j2c/attributes.h>
+#include <j2c/object-array.h>
 
 struct _J2cAttributeCode
 {
@@ -9,8 +9,8 @@ struct _J2cAttributeCode
   guint16 max_locals;
 
   GBytes *code;
-  GPtrArray *exception_table; /* J2cExceptionInfo[] */
-  GPtrArray *attributes; /* J2cAttribute*[] */
+  J2cObjectArray *exception_table; /* J2cExceptionInfo[] */
+  J2cObjectArray *attributes; /* J2cAttribute*[] */
 };
 
 G_DEFINE_TYPE(J2cAttributeCode, j2c_attribute_code, G_TYPE_OBJECT)
@@ -180,16 +180,16 @@ j2c_attribute_code_class_init (J2cAttributeCodeClass *klass)
 						      G_TYPE_BYTES,
 						      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
   g_object_class_install_property (object_class, PROP_EXCEPTION_TABLE,
-				   g_param_spec_boxed (J2C_ATTRIBUTE_PROP_EXCEPTION_TABLE,
+				   g_param_spec_object (J2C_ATTRIBUTE_PROP_EXCEPTION_TABLE,
 						      J2C_ATTRIBUTE_PROP_EXCEPTION_TABLE,
 						      "",
-						      G_TYPE_PTR_ARRAY,
+						      J2C_TYPE_OBJECT_ARRAY,
 						      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
   g_object_class_install_property (object_class, PROP_ATTRIBUTES,
-				   g_param_spec_boxed (J2C_ATTRIBUTE_PROP_ATTRIBUTES,
+				   g_param_spec_object (J2C_ATTRIBUTE_PROP_ATTRIBUTES,
 						      J2C_ATTRIBUTE_PROP_ATTRIBUTES,
 						      "",
-						      G_TYPE_PTR_ARRAY,
+						      J2C_TYPE_OBJECT_ARRAY,
 						      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
@@ -374,15 +374,9 @@ j2c_attribute_code_dispose (GObject *object)
       self->code = NULL;
     }
   if (self->exception_table)
-    {
-      g_ptr_array_unref (self->exception_table);
-      self->exception_table = NULL;
-    }
+    g_clear_object (&self->exception_table);
   if (self->attributes)
-    {
-      g_ptr_array_unref (self->attributes);
-      self->attributes = NULL;
-    }
+    g_clear_object (&self->attributes);
 
   G_OBJECT_CLASS (j2c_attribute_code_parent_class)->dispose (object);
 }
@@ -496,19 +490,13 @@ j2c_attribute_code_set_property (GObject *object, guint property_id, const GValu
       break;
     case PROP_EXCEPTION_TABLE:
       if (self->exception_table)
-        {
-          g_ptr_array_unref (self->exception_table);
-          self->exception_table = NULL;
-        }
-      self->exception_table = g_value_get_boxed (value);
+        g_object_unref (self->exception_table);
+      self->exception_table = g_value_dup_object (value);
       break;
     case PROP_ATTRIBUTES:
       if (self->attributes)
-        {
-          g_ptr_array_unref (self->attributes);
-          self->attributes = NULL;
-        }
-      self->attributes = g_value_get_boxed (value);
+        g_object_unref (self->attributes);
+      self->attributes = g_value_dup_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -693,10 +681,10 @@ j2c_attribute_code_get_property (GObject *object, guint property_id, GValue *val
       g_value_set_boxed (value, self->code);
       break;
     case PROP_EXCEPTION_TABLE:
-      g_value_set_boxed (value, self->exception_table);
+      g_value_set_object (value, self->exception_table);
       break;
     case PROP_ATTRIBUTES:
-      g_value_set_boxed (value, self->attributes);
+      g_value_set_object (value, self->attributes);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

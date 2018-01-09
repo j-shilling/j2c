@@ -6,6 +6,7 @@
 #include <glib.h>
 
 #include <j2c/readable.h>
+#include <j2c/method.h>
 
 #define J2C_INDEXED_FILE_ERROR	g_quark_from_static_string ("j2c-indexed-file")
 
@@ -42,6 +43,7 @@ J2cIndexedFile *j2c_indexed_file_new (J2cReadable *readable, GError **error);
 
 gchar *j2c_indexed_file_get_name (J2cIndexedFile *self);
 J2cFileType j2c_indexed_file_get_file_type (J2cIndexedFile *self);
+J2cMethod *j2c_indexed_file_get_main (J2cIndexedFile *self);
 
 J2cReadable *j2c_indexed_file_get_readable (J2cIndexedFile *self);
 GDataInputStream *j2c_indexed_file_read (J2cIndexedFile *self, GError **error);

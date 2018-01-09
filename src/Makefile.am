@@ -17,4 +17,5 @@ j2c_LDADD = -lm $(GLIB_LIBS) $(GIO_LIBS) $(GOBJECT_LIBS) $(ZIP_LIBS) \
 			$(srcdir)/indexer/libindexer.a \
 			$(srcdir)/compilation_unit/libcompilationunit.a \
 			$(srcdir)/compilation_unit/class_file/libclassfile.a \
+			$(srcdir)/compilation_unit/libcompilationunit.a \
 			$(srcdir)/util/libutil.a

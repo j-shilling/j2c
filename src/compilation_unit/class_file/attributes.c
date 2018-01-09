@@ -474,18 +474,17 @@ j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 leng
               guint16 exception_table_length = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
               if (tmp_error) goto end;
 
-              GPtrArray *exception_table = g_ptr_array_sized_new (exception_table_length);
-              g_ptr_array_set_free_func (exception_table, g_object_unref);
+              J2cObjectArray *exception_table = j2c_object_array_sized_new (exception_table_length);
               for (gint i = 0; i < exception_table_length; i ++)
                 {
                   guint16 start_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
-                  if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
+                  if (tmp_error) { g_object_unref (exception_table); goto end; }
                   guint16 end_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
-                  if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
+                  if (tmp_error) { g_object_unref (exception_table); goto end; }
                   guint16 handler_pc = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
-                  if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
+                  if (tmp_error) { g_object_unref (exception_table); goto end; }
                   guint16 catch_type = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
-                  if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
+                  if (tmp_error) { g_object_unref (exception_table); goto end; }
 
                   J2cExceptionInfo *info = g_object_new (J2C_TYPE_EXCEPTION_INFO,
                                                          J2C_ATTRIBUTE_PROP_START_PC, start_pc,
@@ -493,13 +492,12 @@ j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 leng
                                                          J2C_ATTRIBUTE_PROP_HANDLER_PC, handler_pc,
                                                          J2C_ATTRIBUTE_PROP_CATCH_TYPE, catch_type,
                                                          NULL);
-                   g_ptr_array_add (exception_table, info);
+                   j2c_object_array_add (exception_table, info);
                 }
 
               guint16 attributes_count = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
-              if (tmp_error) { g_ptr_array_unref (exception_table); goto end; }
-              GPtrArray *attributes = g_ptr_array_sized_new (attributes_count);
-              g_ptr_array_set_free_func (attributes, g_object_unref);
+              if (tmp_error) { g_object_unref (exception_table); goto end; }
+              J2cObjectArray *attributes = j2c_object_array_sized_new (attributes_count);
               for (gint i = 0; i < attributes_count; i++)
                 {
                   gpointer attribute = j2c_read_attribute(J2C_TYPE_ATTRIBUTE_CODE, in, cp, &tmp_error);
@@ -511,7 +509,7 @@ j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 leng
                     }
                   else
                     {
-                      g_ptr_array_add (attributes, attribute);
+                      j2c_object_array_add (attributes, attribute);
                     }
                 }
 
@@ -522,6 +520,9 @@ j2c_read_attribute_method (gchar *name, GDataInputStream *in, const guint16 leng
                                   J2C_ATTRIBUTE_PROP_EXCEPTION_TABLE, exception_table,
                                   J2C_ATTRIBUTE_PROP_ATTRIBUTES, attributes,
                                   NULL);
+
+              g_object_unref (exception_table);
+              g_object_unref (attributes);
           }
           else if (g_strcmp0 (name, J2C_EXCEPTIONS) == 0)
             {

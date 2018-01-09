@@ -9,6 +9,7 @@ struct _J2cResourceFile
 static gchar *j2c_resource_file_get_name (J2cIndexedFile *self);
 static J2cFileType j2c_resource_file_get_file_type (J2cIndexedFile *self);
 static GDataInputStream *j2c_resource_file_read (J2cIndexedFile *self, GError **error);
+static J2cMethod *j2c_resource_file_get_main (J2cIndexedFile *self);
 
 G_DEFINE_TYPE (J2cResourceFile, j2c_resource_file, J2C_TYPE_INDEXED_FILE)
 
@@ -76,3 +77,4 @@ j2c_resource_file_read (J2cIndexedFile *self, GError **error)
 
     return datain;
 }
+

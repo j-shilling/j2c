@@ -1613,7 +1613,7 @@ cleanup:
 J2cConstantPoolItem *
 j2c_constant_pool_get (J2cConstantPool *self, const guint16 index, GError **error)
 {
-    g_return_val_if_fail (error != NULL || *error != NULL, NULL);
+    g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
     if (!self)
     {
@@ -1642,10 +1642,14 @@ j2c_constant_pool_get (J2cConstantPool *self, const guint16 index, GError **erro
 gchar *
 j2c_constant_pool_get_string (J2cConstantPool *self, const guint16 index, GError **error)
 {
-    J2cConstantPoolItem *info = j2c_constant_pool_get (self, index, error);
+    GError *tmp_error = NULL;
+    J2cConstantPoolItem *info = j2c_constant_pool_get (self, index, &tmp_error);
 
-    if (*error)
-        return NULL;
+    if (tmp_error)
+        {
+            g_propagate_error (error, tmp_error);
+            return NULL;
+        }
 
     J2cConstantPoolItemPrivate *priv = j2c_constant_pool_item_get_instance_private (J2C_CONSTANT_POOL_ITEM (info));
     if (priv->tag != CONSTANT_Utf8)

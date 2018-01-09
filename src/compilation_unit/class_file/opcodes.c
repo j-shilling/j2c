@@ -292,7 +292,7 @@ G_DEFINE_TYPE(J2cByteInstruction, j2c_byte_instruction, G_TYPE_OBJECT)
 
 enum
 {
-  PROP_OPCODE,
+  PROP_OPCODE = 1,
   PROP_OPERANDS,
   N_PROPERTIES
 };
@@ -312,7 +312,11 @@ j2c_byte_instruction_set_property (GObject *object, guint property_id, const GVa
       case PROP_OPERANDS:
         if (self->operands)
           g_bytes_unref (self->operands);
-        self->operands = g_bytes_ref (g_value_get_boxed (value));
+        GBytes *bytes = g_value_get_boxed (value);
+        if (bytes)
+          self->operands = g_bytes_ref (bytes);
+        else
+          self->operands = NULL;
         break;
       default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);

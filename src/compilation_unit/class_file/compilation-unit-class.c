@@ -4,6 +4,7 @@
 #include <j2c/attributes.h>
 #include <j2c/logger.h>
 #include <j2c/object-array.h>
+#include <j2c/byte-code-method.h>
 
 #include <gio/gio.h>
 
@@ -35,6 +36,7 @@ static void j2c_compilation_unit_class_get_property (GObject *object, guint prop
 static void j2c_compilation_unit_interface_init (J2cCompilationUnitInterface *iface);
 static gchar const *j2c_compilation_unit_class_name (J2cCompilationUnit *compilation_unit);
 static J2cObjectArray *j2c_compilation_unit_class_get_type_dependencies (J2cCompilationUnit *compilation_unit);
+static J2cMethod *j2c_compilation_unit_class_get_method (J2cCompilationUnit *self, gchar *java_name, gchar *descriptor);
 
 G_DEFINE_TYPE_WITH_CODE (J2cCompilationUnitClass, j2c_compilation_unit_class, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (J2C_TYPE_COMPILATION_UNIT, j2c_compilation_unit_interface_init))
@@ -307,6 +309,7 @@ j2c_compilation_unit_interface_init (J2cCompilationUnitInterface *iface)
 {
   iface->name = j2c_compilation_unit_class_name;
   iface->get_type_dependencies = j2c_compilation_unit_class_get_type_dependencies;
+  iface->get_method = j2c_compilation_unit_class_get_method;
 }
 
 static void
@@ -497,5 +500,51 @@ static J2cObjectArray *
 j2c_compilation_unit_class_get_type_dependencies (J2cCompilationUnit *compilation_unit)
 {
   return NULL;
+}
+
+static J2cMethod *
+j2c_compilation_unit_class_get_method (J2cCompilationUnit *compilation_unit, gchar *java_name, gchar *descriptor)
+{
+  if (java_name == NULL || *java_name == '\0')
+    return NULL;
+
+  J2cCompilationUnitClass *self = J2C_COMPILATION_UNIT_CLASS (compilation_unit);
+  J2cObjectArray *methods = self->methods;
+  J2cMethod *ret = NULL;
+
+  guint num_methods = j2c_object_array_length (methods);
+  for (gint i = 0; i < num_methods; i ++)
+    {
+      J2cMethodInfo *info = j2c_object_array_get(methods, i);
+
+      GValue value = G_VALUE_INIT;
+      g_value_init (&value, G_TYPE_UINT);
+
+      g_object_get_property (G_OBJECT(info), METHOD_OR_FIELD_PROP_NAME_INDEX, &value);
+      guint index = g_value_get_uint (&value);
+      gchar *method_name = j2c_constant_pool_get_string (self->constant_pool, index, NULL);
+      if (g_strcmp0 (java_name, method_name) == 0)
+        {
+          g_object_get_property (G_OBJECT(info), METHOD_OR_FIELD_PROP_DESCRIPTOR_INDEX, &value);
+          index = g_value_get_uint (&value);
+          gchar *method_descriptor = j2c_constant_pool_get_string (self->constant_pool, index, NULL);
+
+          if (g_strcmp0 (descriptor, method_descriptor) == 0)
+            {
+              J2cByteCodeMethod *byte_method = j2c_byte_code_method_new (info, self->constant_pool, NULL);
+              ret = J2C_METHOD (byte_method);
+            }
+
+          if (method_descriptor)
+            g_free (method_descriptor);
+        }
+
+      if (method_name)
+        g_free (method_name);
+      g_value_unset (&value);
+      g_object_unref (info);
+    }
+
+  return ret;
 }
 

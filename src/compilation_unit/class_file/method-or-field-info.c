@@ -43,11 +43,6 @@ enum
 
 static GParamSpec *obj_properties[N_PROPERTIES] = { NULL, };
 
-static gchar const *const ACCESS_FLAGS = "access-flags";
-static gchar const *const NAME_INDEX = "name-index";
-static gchar const *const DESCRIPTOR_INDEX = "descriptor-index";
-static gchar const *const ATTRIBUTES = "attributes";
-
 /****
   PRIVATE METHOD PROTOTYPES
  ****/
@@ -106,10 +101,10 @@ j2c_method_or_field_info_from_class_file (GType type, GDataInputStream *in, J2cC
 
 success:
   ret = g_object_new (type,
-                       ACCESS_FLAGS, access_flags,
-                       NAME_INDEX, name_index,
-                       DESCRIPTOR_INDEX, descriptor_index,
-                       ATTRIBUTES, attributes,
+                       METHOD_OR_FIELD_PROP_ACCESS_FLAGS, access_flags,
+                       METHOD_OR_FIELD_PROP_NAME_INDEX, name_index,
+                       METHOD_OR_FIELD_PROP_DESCRIPTOR_INDEX, descriptor_index,
+                       METHOD_OR_FIELD_PROP_ATTRIBUTES, attributes,
                        NULL);
 error:
   if (tmp_error)
@@ -163,8 +158,8 @@ j2c_method_or_field_info_class_init (J2cMethodOrFieldInfoClass *klass)
   object_class->dispose      = j2c_method_or_field_info_dispose;
 
   obj_properties[PROP_ACCESS_FLAGS] =
-    g_param_spec_uint (ACCESS_FLAGS,
-                       ACCESS_FLAGS,
+    g_param_spec_uint (METHOD_OR_FIELD_PROP_ACCESS_FLAGS,
+                       METHOD_OR_FIELD_PROP_ACCESS_FLAGS,
                        "The value of the access_flags item is a "
                        "mask of flags used to denote access permission "
                        "to and properties of this field.",
@@ -172,8 +167,8 @@ j2c_method_or_field_info_class_init (J2cMethodOrFieldInfoClass *klass)
                        0,
                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   obj_properties[PROP_NAME_INDEX] =
-    g_param_spec_uint (NAME_INDEX,
-                       NAME_INDEX,
+    g_param_spec_uint (METHOD_OR_FIELD_PROP_NAME_INDEX,
+                       METHOD_OR_FIELD_PROP_NAME_INDEX,
                        "The value of the name_index item must be a "
                        "valid index into the constant_pool table. The "
                        "constant_pool entry at that index must be a "
@@ -184,8 +179,8 @@ j2c_method_or_field_info_class_init (J2cMethodOrFieldInfoClass *klass)
                        0,
                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   obj_properties[PROP_DESCRIPTOR_INDEX] =
-    g_param_spec_uint (DESCRIPTOR_INDEX,
-                       DESCRIPTOR_INDEX,
+    g_param_spec_uint (METHOD_OR_FIELD_PROP_DESCRIPTOR_INDEX,
+                       METHOD_OR_FIELD_PROP_DESCRIPTOR_INDEX,
                        "The value of the descriptor_index item must be "
                        "a valid index into the constant_pool table. The "
                        "constant_pool entry at that index must be a "
@@ -195,8 +190,8 @@ j2c_method_or_field_info_class_init (J2cMethodOrFieldInfoClass *klass)
                        0,
                        G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);
   obj_properties[PROP_ATTRIBUTES] =
-    g_param_spec_object (ATTRIBUTES,
-                        ATTRIBUTES,
+    g_param_spec_object (METHOD_OR_FIELD_PROP_ATTRIBUTES,
+                        METHOD_OR_FIELD_PROP_ATTRIBUTES,
                         "Attributes associated with this field.",
                         J2C_TYPE_OBJECT_ARRAY,
                         G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY);

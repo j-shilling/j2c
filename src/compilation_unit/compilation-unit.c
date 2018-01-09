@@ -37,4 +37,13 @@ j2c_compilation_unit_get_type_dependencies (J2cCompilationUnit *self)
   return iface->get_type_dependencies (self);
 }
 
+J2cMethod *
+j2c_compilation_unit_get_method (J2cCompilationUnit *self, gchar *java_name, gchar *descriptor)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  J2cCompilationUnitInterface *iface = J2C_COMPILATION_UNIT_GET_IFACE (self);
+
+  g_return_val_if_fail (iface->get_method != NULL, NULL);
+  return iface->get_method (self, java_name, descriptor);
+}
 

@@ -15,6 +15,7 @@ static void j2c_class_file_dispose (GObject *object);
 static gchar *j2c_class_file_get_name (J2cIndexedFile *self);
 static J2cFileType j2c_class_file_get_file_type (J2cIndexedFile *self);
 static GDataInputStream *j2c_class_file_read (J2cIndexedFile *self, GError **error);
+static J2cMethod *j2c_class_file_get_main (J2cIndexedFile *self);
 static void j2c_class_file_initable_interface_init (GInitableIface *iface);
 static gboolean j2c_class_file_initable_init (GInitable *initable,
 	      				  GCancellable *cancellable,
@@ -155,3 +156,4 @@ j2c_class_file_read (J2cIndexedFile *self, GError **error)
     g_data_input_stream_set_byte_order (datain, G_DATA_STREAM_BYTE_ORDER_BIG_ENDIAN);
     return datain;
 }
+

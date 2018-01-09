@@ -8,6 +8,9 @@ struct _J2cIndex
 {
   GTree *types;
   GTree *resources;
+
+  J2cIndexedFile *main;
+
   GMutex m;
 };
 
@@ -21,6 +24,7 @@ j2c_index_new (void)
   J2cIndex *ret = g_malloc (sizeof (J2cIndex));
   ret->types = NULL;
   ret->resources = NULL;
+  ret->main = NULL;
   g_mutex_init (&ret->m);
 
   return ret;
@@ -36,15 +40,17 @@ j2c_index_delete (J2cIndex *self)
       g_mutex_lock (&self->m);
 
       if (self->types)
-	{
-	  g_tree_foreach (self->types, j2c_index_free_nodes, NULL);
-	  g_tree_destroy (self->types);
-	}
+        {
+          g_tree_foreach (self->types, j2c_index_free_nodes, NULL);
+          g_tree_destroy (self->types);
+        }
       if (self->resources)
       	{
       	  g_tree_foreach (self->resources, j2c_index_free_nodes, NULL);
       	  g_tree_destroy (self->resources);
       	}
+      if (self->main)
+        g_clear_object (&self->main);
 
       g_mutex_unlock (&self->m);
     }
@@ -80,6 +86,17 @@ j2c_index_insert (J2cIndex *self, J2cIndexedFile *item)
 		   J2C_FILE_TYPE_RESOURCE == j2c_indexed_file_get_file_type (item) ?
 		     "resource" : "type",
 		   key);
+  if (NULL != j2c_indexed_file_get_main(item))
+    {
+      if (self->main)
+        j2c_logger_warning ("main method in type %s conflicts with main method in type %s",
+                            key, j2c_indexed_file_get_name(self->main));
+      else
+        {
+          self->main = g_object_ref (item);
+          j2c_logger_fine ("main method found in typ %s", key);
+        }
+    }
 
 end:
   g_mutex_unlock (&self->m);

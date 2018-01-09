@@ -5,7 +5,7 @@
 
 struct _J2cByteCodeMethod
 {
-  GObject parent;
+  J2cMethod parent;
 
   /* From J2cMethodInfo */
   guint16 access_flags;
@@ -24,11 +24,11 @@ struct _J2cByteCodeMethod
   GPtrArray *instructions; /* J2cByteInstruction[] */
 };
 
-G_DEFINE_TYPE(J2cByteCodeMethod, j2c_byte_code_method, G_TYPE_OBJECT)
+G_DEFINE_TYPE(J2cByteCodeMethod, j2c_byte_code_method, J2C_TYPE_METHOD)
 
 enum
 {
-  PROP_ACCESS_FLAGS,
+  PROP_ACCESS_FLAGS = 1,
   PROP_NAME_INDEX,
   PROP_DESCRIPTOR_INDEX,
   PROP_METHOD_ATTRIBUTES,
@@ -41,7 +41,7 @@ enum
   N_PROPERTIES
 };
 
-GParamSpec *object_properties[N_PROPERTIES] = { NULL, };
+static GParamSpec *object_properties[N_PROPERTIES] = { NULL, };
 
 static void
 j2c_byte_code_method_set_property (GObject *object, guint property_id, const GValue *value, GParamSpec *pspec)
@@ -168,9 +168,40 @@ j2c_byte_code_method_dispose (GObject *object)
   G_OBJECT_CLASS (j2c_byte_code_method_parent_class)->dispose (object);
 }
 
+static gchar *
+j2c_byte_code_method_get_descriptor (J2cMethod *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+
+  return j2c_constant_pool_get_string (J2C_BYTE_CODE_METHOD(self)->constant_pool,
+    J2C_BYTE_CODE_METHOD(self)->descriptor_index, NULL);
+}
+
+static gchar *
+j2c_byte_code_method_get_java_name (J2cMethod *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+
+  return j2c_constant_pool_get_string (J2C_BYTE_CODE_METHOD(self)->constant_pool,
+    J2C_BYTE_CODE_METHOD(self)->name_index, NULL);
+}
+
+static guint16
+j2c_byte_code_method_get_access_flags (J2cMethod *self)
+{
+  g_return_val_if_fail (self != NULL, 0);
+
+  return J2C_BYTE_CODE_METHOD(self)->access_flags;
+}
+
 static void
 j2c_byte_code_method_class_init (J2cByteCodeMethodClass *klass)
 {
+  J2cMethodClass *method_class   = J2C_METHOD_CLASS (klass);
+  method_class->get_descriptor   = j2c_byte_code_method_get_descriptor;
+  method_class->get_java_name    = j2c_byte_code_method_get_java_name;
+  method_class->get_access_flags = j2c_byte_code_method_get_access_flags;
+
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   object_class->set_property = j2c_byte_code_method_set_property;
   object_class->get_property = j2c_byte_code_method_get_property;
@@ -329,6 +360,7 @@ j2c_byte_code_method_new (J2cMethodInfo *info, J2cConstantPool *constant_pool, G
   g_value_unset (&val);
   g_value_init (&val, G_TYPE_BYTES);
 
+  g_object_get_property (G_OBJECT (code), J2C_ATTRIBUTE_PROP_CODE, &val);
   GBytes *bytes = g_value_get_boxed (&val);
   g_value_unset (&val);
 

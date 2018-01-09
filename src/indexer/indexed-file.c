@@ -1,6 +1,7 @@
 #include <j2c/indexed-file.h>
 #include <j2c/resource-file.h>
 #include <j2c/class-file.h>
+#include <j2c/compilation-unit.h>
 
 typedef struct
 {
@@ -144,6 +145,29 @@ j2c_indexed_file_get_file_type (J2cIndexedFile *self)
 {
   J2cIndexedFileClass *klass = J2C_INDEXED_FILE_GET_CLASS (self);
   return klass->get_file_type (self);
+}
+
+J2cMethod *
+j2c_indexed_file_get_main (J2cIndexedFile *self)
+{
+  J2cCompilationUnit *unit = j2c_compilation_unit_new (self, NULL);
+  if (!unit) return NULL;
+
+  J2cMethod *method = j2c_compilation_unit_get_method (unit, "main", "([Ljava/lang/String;)V");
+  J2cMethod *ret = NULL;
+  if (method != NULL)
+    {
+      guint16 access_flags = j2c_method_get_access_flags(method);
+      if ((access_flags & METHOD_ACC_PUBLIC) && (access_flags & METHOD_ACC_STATIC))
+        ret = g_object_ref (method);
+    }
+
+  if (unit)
+    g_object_unref (unit);
+  if (method)
+    g_object_unref (method);
+
+  return ret;
 }
 
 J2cReadable *
