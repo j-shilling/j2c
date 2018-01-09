@@ -1,11 +1,15 @@
 #include <j2c/index.h>
 #include <j2c/logger.h>
 #include <j2c/jar-file.h>
+#include <j2c/object-array.h>
 
 #include <glib.h>
 
 struct _J2cIndex
 {
+  GObject parent;
+
+  J2cObjectArray *target_types;
   GTree *types;
   GTree *resources;
 
@@ -14,52 +18,64 @@ struct _J2cIndex
   GMutex m;
 };
 
+G_DEFINE_TYPE (J2cIndex, j2c_index, G_TYPE_OBJECT)
+
 static gboolean j2c_index_free_nodes (gpointer key, gpointer data, gpointer user_data);
-static gboolean j2c_index_log_content (gpointer key, gpointer data, gpointer user_data);
 static gint     j2c_index_compare_nodes (gconstpointer a, gconstpointer b);
+
+static void
+j2c_index_dispose (GObject *object)
+{
+  J2cIndex *self = J2C_INDEX (object);
+
+  g_mutex_lock (&self->m);
+  if (self->target_types)
+    g_clear_object (&self->target_types);
+  if (self->main)
+    g_clear_object (&self->main);
+
+  if (self->types)
+    {
+      g_tree_foreach (self->types, j2c_index_free_nodes, NULL);
+      g_tree_destroy (self->types);
+      self->types = NULL;
+    }
+  if (self->resources)
+    {
+      g_tree_foreach (self->resources, j2c_index_free_nodes, NULL);
+      g_tree_destroy (self->resources);
+      self->resources = NULL;
+    }
+  g_mutex_unlock (&self->m);
+  g_mutex_clear (&self->m);
+
+  G_OBJECT_CLASS(j2c_index_parent_class)->dispose (object);
+}
+
+static void
+j2c_index_class_init (J2cIndexClass *klass)
+{
+  G_OBJECT_CLASS (klass)->dispose = j2c_index_dispose;
+}
+
+static void
+j2c_index_init (J2cIndex *self)
+{
+  self->target_types = NULL;
+  self->types = NULL;
+  self->resources = NULL;
+  self->main = NULL;
+  g_mutex_init (&self->m);
+}
 
 J2cIndex *
 j2c_index_new (void)
 {
-  J2cIndex *ret = g_malloc (sizeof (J2cIndex));
-  ret->types = NULL;
-  ret->resources = NULL;
-  ret->main = NULL;
-  g_mutex_init (&ret->m);
-
-  return ret;
+  return g_object_new (J2C_TYPE_INDEX, NULL);
 }
 
 void
-j2c_index_delete (J2cIndex *self)
-{
-  g_return_if_fail (NULL != self);
-
-  if (self->types || self->resources)
-    {
-      g_mutex_lock (&self->m);
-
-      if (self->types)
-        {
-          g_tree_foreach (self->types, j2c_index_free_nodes, NULL);
-          g_tree_destroy (self->types);
-        }
-      if (self->resources)
-      	{
-      	  g_tree_foreach (self->resources, j2c_index_free_nodes, NULL);
-      	  g_tree_destroy (self->resources);
-      	}
-      if (self->main)
-        g_clear_object (&self->main);
-
-      g_mutex_unlock (&self->m);
-    }
-
-  g_free (self);
-}
-
-void
-j2c_index_insert (J2cIndex *self, J2cIndexedFile *item)
+j2c_index_insert (J2cIndex *self, J2cIndexedFile *item, gboolean const target)
 {
   g_return_if_fail (NULL != self);
   g_return_if_fail (NULL != item);
@@ -81,11 +97,15 @@ j2c_index_insert (J2cIndex *self, J2cIndexedFile *item)
         }
     }
 
-  g_tree_insert (*tree, key, item);
+  g_tree_insert (*tree, key, g_object_ref(item));
   j2c_logger_fine ("Indexed %s: %s",
 		   J2C_FILE_TYPE_RESOURCE == j2c_indexed_file_get_file_type (item) ?
 		     "resource" : "type",
 		   key);
+
+  if (target)
+    j2c_object_array_add (self->target_types, item);
+
   if (NULL != j2c_indexed_file_get_main(item))
     {
       if (self->main)
@@ -94,7 +114,7 @@ j2c_index_insert (J2cIndex *self, J2cIndexedFile *item)
       else
         {
           self->main = g_object_ref (item);
-          j2c_logger_fine ("main method found in typ %s", key);
+          j2c_logger_fine ("main method found in type %s", key);
         }
     }
 
@@ -103,7 +123,7 @@ end:
 }
 
 void
-j2c_index_insert_file (J2cIndex *self, J2cReadable *file)
+j2c_index_insert_file (J2cIndex *self, J2cReadable *file, gboolean const target)
 {
   g_return_if_fail (NULL != self);
   g_return_if_fail (NULL != file);
@@ -112,7 +132,7 @@ j2c_index_insert_file (J2cIndex *self, J2cReadable *file)
   J2cIndexedFile *item = j2c_indexed_file_new (file, &error);
   if (item)
     {
-      j2c_index_insert (self, item);
+      j2c_index_insert (self, item, target);
     }
   else
     {
@@ -120,24 +140,6 @@ j2c_index_insert_file (J2cIndex *self, J2cReadable *file)
 			  j2c_readable_name (file),
 			  error->message);
     }
-}
-
-void
-j2c_index_log_contents (J2cIndex *self, J2cLoggerLevel level)
-{
-  g_return_if_fail (NULL != self);
-
-  g_mutex_lock (&self->m);
-
-  j2c_logger_log (level, "Types:");
-  if (self->types)
-    g_tree_foreach (self->types, j2c_index_log_content, &level);
-
-  j2c_logger_log (level, "Resources:");
-  if (self->resources)
-    g_tree_foreach (self->resources, j2c_index_log_content, &level);
-
-  g_mutex_unlock (&self->m);
 }
 
 static gboolean
@@ -154,12 +156,4 @@ static gint
 j2c_index_compare_nodes (gconstpointer a, gconstpointer b)
 {
   return g_strcmp0 ((const gchar *) a, (const gchar *) b);
-}
-
-static gboolean
-j2c_index_log_content (gpointer key, gpointer data, gpointer user_data)
-{
-  const J2cLoggerLevel level = *((J2cLoggerLevel *) user_data);
-  j2c_logger_log (level, "\t%s", (gchar *) key);
-  return FALSE;
 }

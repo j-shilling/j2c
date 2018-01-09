@@ -192,9 +192,10 @@ main (gint argc, gchar *argv[])
    ****/
 
   j2c_logger_heading ("indexing files");
-  J2cIndex *class_path_index = j2c_index_new ();
+  J2cIndex *index = j2c_index_new ();
+  gpointer user_data[2] = { index, NULL };
   pool = g_thread_pool_new (j2c_index_files,
-			    class_path_index,
+			    user_data,
 			    max_threads,
 			    TRUE,
 			    &error);
@@ -217,9 +218,9 @@ main (gint argc, gchar *argv[])
   g_thread_pool_free (pool, FALSE, TRUE);
   j2c_readable_list_destroy (class_path_files);
 
-  J2cIndex *target_index = j2c_index_new ();
+  user_data[1] = index;
   pool = g_thread_pool_new (j2c_index_files,
-			    target_index,
+			    user_data,
 			    max_threads,
 			    TRUE,
 			    &error);
@@ -242,8 +243,7 @@ main (gint argc, gchar *argv[])
   g_thread_pool_free (pool, FALSE, TRUE);
   j2c_readable_list_destroy (target_files);
 
-  j2c_index_delete (class_path_index);
-  j2c_index_delete (target_index);
+  g_object_unref (index);
 }
 
 static gboolean
@@ -268,5 +268,8 @@ j2c_index_files (gpointer data, gpointer user_data)
 {
   g_return_if_fail (NULL != user_data);
   g_return_if_fail (J2C_IS_READABLE (data));
-  j2c_index_insert_file ((J2cIndex *)user_data, J2C_READABLE (data));
+
+  gpointer *args = (gpointer *) user_data;
+
+  j2c_index_insert_file ((J2cIndex *)args[0], J2C_READABLE (data), args[1] == NULL);
 }
