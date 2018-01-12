@@ -299,6 +299,7 @@ j2c_find_dependencies (gpointer data, gpointer user_data)
   g_free (method_name);
 
   J2cDependencyInfo *result = j2c_method_get_dependency_info (method);
+  j2c_dependency_info_log_deps (result, J2C_LOGGER_LEVEL_FINE);
 
   g_object_unref (result);
 }

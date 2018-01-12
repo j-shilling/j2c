@@ -1,4 +1,5 @@
 #include <j2c/dependency-info.h>
+#include <j2c/logger.h>
 
 struct _J2cDependencyInfo
 {
@@ -71,6 +72,25 @@ j2c_dependency_info_init (J2cDependencyInfo *self)
                                 j2c_dependency_info_key_destory,
                                 j2c_dependency_info_data_destroy);
   g_mutex_init (&self->mutex);
+}
+
+static gboolean
+j2c_dependency_info_log_node (gpointer key, gpointer value, gpointer data)
+{
+  gchar *java_name = key;
+  J2cDependency *dep = value;
+  J2cLoggerLevel level = *((J2cLoggerLevel *) data);
+
+  j2c_logger_log(level, "Required type %s", java_name);
+}
+
+void
+j2c_dependency_info_log_deps (J2cDependencyInfo *self, J2cLoggerLevel level)
+{
+  g_return_if_fail (self != NULL);
+  g_mutex_lock (&self->mutex);
+  g_tree_foreach (self->tree, j2c_dependency_info_log_node, &level);
+  g_mutex_unlock (&self->mutex);
 }
 
 void

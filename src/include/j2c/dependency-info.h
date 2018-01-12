@@ -10,6 +10,7 @@ G_BEGIN_DECLS
 G_DECLARE_FINAL_TYPE (J2cDependencyInfo, j2c_dependency_info, J2C, DEPENDENCY_INFO, GObject)
 
 void j2c_dependency_info_requires_type (J2cDependencyInfo *self, gchar *java_name);
+void j2c_dependency_info_log_deps (J2cDependencyInfo *self, J2cLoggerLevel level);
 
 G_END_DECLS
 
