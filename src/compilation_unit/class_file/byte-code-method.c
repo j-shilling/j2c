@@ -2,6 +2,7 @@
 #include <j2c/object-array.h>
 #include <j2c/attributes.h>
 #include <j2c/opcodes.h>
+#include <j2c/descriptors.h>
 
 struct _J2cByteCodeMethod
 {
@@ -194,13 +195,54 @@ j2c_byte_code_method_get_access_flags (J2cMethod *self)
   return J2C_BYTE_CODE_METHOD(self)->access_flags;
 }
 
+static J2cDependencyInfo *
+j2c_byte_code_method_get_dependency_info (J2cMethod *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  g_return_val_if_fail (J2C_IS_BYTE_CODE_METHOD (self), NULL);
+
+  J2cDependencyInfo *ret = g_object_new (J2C_TYPE_DEPENDENCY_INFO, NULL);
+
+  /* Get dependencies from descriptor */
+  gchar *descriptor = j2c_method_get_descriptor (self);
+
+  gchar *returns = j2c_descriptor_get_return_type (descriptor);
+  while (j2c_descriptor_is_array_type (returns))
+    {
+      gchar *tmp = returns;
+      returns = j2c_descriptor_get_array_content_type (tmp);
+      g_free (tmp);
+    }
+  if (j2c_descriptor_is_reference_type (returns))
+    j2c_dependency_info_requires_type (ret, returns);
+  g_free (returns);
+
+  gchar **args = j2c_descriptor_get_params (descriptor);
+  for (gchar **arg = args; arg && *arg; arg ++)
+    {
+      while (j2c_descriptor_is_array_type (*arg))
+        {
+          gchar *tmp = *arg;
+          *arg = j2c_descriptor_get_array_content_type (tmp);
+          g_free (tmp);
+        }
+      if (j2c_descriptor_is_reference_type (*arg))
+       j2c_dependency_info_requires_type (ret, *arg);
+      g_free (*arg);
+    }
+  if (args) g_free (args);
+
+  return ret;
+}
+
 static void
 j2c_byte_code_method_class_init (J2cByteCodeMethodClass *klass)
 {
-  J2cMethodClass *method_class   = J2C_METHOD_CLASS (klass);
-  method_class->get_descriptor   = j2c_byte_code_method_get_descriptor;
-  method_class->get_java_name    = j2c_byte_code_method_get_java_name;
-  method_class->get_access_flags = j2c_byte_code_method_get_access_flags;
+  J2cMethodClass *method_class      = J2C_METHOD_CLASS (klass);
+  method_class->get_descriptor      = j2c_byte_code_method_get_descriptor;
+  method_class->get_java_name       = j2c_byte_code_method_get_java_name;
+  method_class->get_access_flags    = j2c_byte_code_method_get_access_flags;
+  method_class->get_dependency_info = j2c_byte_code_method_get_dependency_info;
 
   GObjectClass *object_class = G_OBJECT_CLASS (klass);
   object_class->set_property = j2c_byte_code_method_set_property;

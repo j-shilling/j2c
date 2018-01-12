@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <j2c/dependency-info.h>
 
 G_BEGIN_DECLS
 
@@ -16,11 +17,13 @@ struct _J2cMethodClass
   gchar *(*get_descriptor) (J2cMethod *self);
   gchar *(*get_java_name) (J2cMethod *self);
   guint16 (*get_access_flags) (J2cMethod *self);
+  J2cDependencyInfo *(*get_dependency_info) (J2cMethod *self);
 };
 
 gchar *j2c_method_get_descriptor (J2cMethod *self);
 gchar *j2c_method_get_java_name (J2cMethod *self);
 guint16 j2c_method_get_access_flags (J2cMethod *self);
+J2cDependencyInfo *j2c_method_get_dependency_info (J2cMethod *self);
 
 typedef enum
 {

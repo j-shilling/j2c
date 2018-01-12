@@ -6,6 +6,8 @@
 #include <j2c/logger.h>
 #include <j2c/index.h>
 #include <j2c/reader.h>
+#include <j2c/dependency-info.h>
+#include <j2c/method.h>
 
 static gboolean j2c_parse_verbosity (const gchar *option_name,
 				     const gchar *value,
@@ -17,6 +19,8 @@ static void j2c_parse_input_files (gpointer data,
 
 static void j2c_index_files (gpointer data,
 			     gpointer user_data);
+static void
+j2c_find_dependencies (gpointer data, gpointer user_data);
 
 static guint verbosity = 0;
 static gint max_threads = 5;
@@ -243,6 +247,16 @@ main (gint argc, gchar *argv[])
   g_thread_pool_free (pool, FALSE, TRUE);
   j2c_readable_list_destroy (target_files);
 
+  J2cIndexedFile *main = j2c_index_get_main (index);
+  J2cMethod *method = j2c_indexed_file_get_main (main);
+  J2cDependencyInfo *deps = g_object_new (J2C_TYPE_DEPENDENCY_INFO, NULL);
+  j2c_find_dependencies (method, deps);
+
+  g_object_unref (method);
+  g_object_unref (main);
+  g_object_unref (deps);
+
+
   g_object_unref (index);
 }
 
@@ -272,4 +286,19 @@ j2c_index_files (gpointer data, gpointer user_data)
   gpointer *args = (gpointer *) user_data;
 
   j2c_index_insert_file ((J2cIndex *)args[0], J2C_READABLE (data), args[1] == NULL);
+}
+
+static void
+j2c_find_dependencies (gpointer data, gpointer user_data)
+{
+  J2cDependencyInfo *info = user_data;
+  J2cMethod *method = data;
+
+  gchar *method_name = j2c_method_get_java_name (method);
+  j2c_logger_fine ("Scanning %s", method_name);
+  g_free (method_name);
+
+  J2cDependencyInfo *result = j2c_method_get_dependency_info (method);
+
+  g_object_unref (result);
 }

@@ -142,6 +142,13 @@ j2c_index_insert_file (J2cIndex *self, J2cReadable *file, gboolean const target)
     }
 }
 
+J2cIndexedFile *
+j2c_index_get_main (J2cIndex *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  return g_object_ref(self->main);
+}
+
 static gboolean
 j2c_index_free_nodes (gpointer key, gpointer data, gpointer user_data)
 {

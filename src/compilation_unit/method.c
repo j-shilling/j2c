@@ -50,3 +50,14 @@ j2c_method_get_access_flags (J2cMethod *self)
   g_return_val_if_fail (klass->get_access_flags != NULL, 0);
   return klass->get_access_flags (self);
 }
+
+J2cDependencyInfo *
+j2c_method_get_dependency_info (J2cMethod *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  J2cMethodClass *klass = J2C_METHOD_GET_CLASS (self);
+
+  g_return_val_if_fail (klass->get_dependency_info != NULL, NULL);
+  return klass->get_dependency_info (self);
+}
+

@@ -1,4 +1,5 @@
 #include <j2c/opcodes.h>
+#include <j2c/descriptors.h>
 
 static GEnumValue opcode_values[] =
 {

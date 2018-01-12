@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <glib-object.h>
 #include <gio/gio.h>
+#include <j2c/constant-pool.h>
 
 G_BEGIN_DECLS
 
@@ -31,7 +32,7 @@ typedef enum
   j2c_anewarray         = 0xBD, /* Create new array of reference | anewarray indexbyte1 indexbyte2 | ..., count -> arrayref */
   j2c_areturn           = 0xB0, /* Return reference from method | ..., objectref -> */
   j2c_arraylength       = 0xBE, /* Get length of array | ..., arrayref -> value */
-  j2c_astore            = 0x3A, /* Store reference in local variable | astore index | ...,objectref -> */
+  j2c_astore            = 0x3A, /* Store reference in local variable | astore index | ..., objectref -> */
   j2c_astore_0          = 0x4B, /* astore 0 */
   j2c_astore_1          = 0x4C, /* astore 1 */
   j2c_astore_2          = 0x4D, /* astore 2 */
@@ -241,6 +242,11 @@ J2cOpcode j2c_byte_instruction_opcode (J2cByteInstruction *self);
 guint8 j2c_byte_instruction_operand (J2cByteInstruction *self, const guint index);
 gsize j2c_byte_instruction_operand_size (J2cByteInstruction *self);
 J2cByteInstruction *j2c_byte_instruction_new_from_stream (GInputStream *in, GError **error);
+
+gboolean j2c_byte_instruction_is_store (J2cByteInstruction *self);
+gint j2c_byte_instruction_get_store_index (J2cByteInstruction *self);
+void j2c_byte_instruction_map_types (J2cByteInstruction *self, J2cConstantPool *constant_pool,
+                                     gchar **locals, GQueue *stack);
 
 G_END_DECLS
 
