@@ -21,7 +21,7 @@ j2c_compilation_unit_new (J2cIndexedFile *file, GError **error)
     return NULL;
 }
 
-gchar const *
+gchar *
 j2c_compilation_unit_name (J2cCompilationUnit *self)
 {
   g_return_val_if_fail (J2C_IS_COMPILATION_UNIT (self), NULL);
@@ -47,3 +47,22 @@ j2c_compilation_unit_get_method (J2cCompilationUnit *self, gchar *java_name, gch
   return iface->get_method (self, java_name, descriptor);
 }
 
+gchar *
+j2c_compilation_unit_superclass_name (J2cCompilationUnit *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  J2cCompilationUnitInterface *iface = J2C_COMPILATION_UNIT_GET_IFACE (self);
+
+  g_return_val_if_fail (iface->superclass_name != NULL, NULL);
+  return iface->superclass_name (self);
+}
+
+gchar **
+j2c_compilation_unit_interfaces (J2cCompilationUnit *self)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+  J2cCompilationUnitInterface *iface = J2C_COMPILATION_UNIT_GET_IFACE (self);
+
+  g_return_val_if_fail (iface->interfaces != NULL, NULL);
+  return iface->interfaces (self);
+}

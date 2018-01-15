@@ -2,7 +2,8 @@ SUBDIRS = logger \
           util \
 	  reader \
           indexer \
-	  compilation_unit
+	  compilation_unit \
+	  dependencies
 
 bin_PROGRAMS=j2c
 
@@ -18,4 +19,5 @@ j2c_LDADD = -lm $(GLIB_LIBS) $(GIO_LIBS) $(GOBJECT_LIBS) $(ZIP_LIBS) \
 			$(srcdir)/compilation_unit/libcompilationunit.a \
 			$(srcdir)/compilation_unit/class_file/libclassfile.a \
 			$(srcdir)/compilation_unit/libcompilationunit.a \
-			$(srcdir)/util/libutil.a
+			$(srcdir)/util/libutil.a \
+			$(srcdir)/dependencies/libdependencies.a

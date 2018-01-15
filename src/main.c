@@ -196,68 +196,39 @@ main (gint argc, gchar *argv[])
    ****/
 
   j2c_logger_heading ("indexing files");
-  J2cIndex *index = j2c_index_new ();
-  gpointer user_data[2] = { index, NULL };
-  pool = g_thread_pool_new (j2c_index_files,
-			    user_data,
-			    max_threads,
-			    TRUE,
-			    &error);
-  if (error)
-    {
-      j2c_logger_severe ("Error creating thread pool: %s", error->message);
-      g_error_free (error);
-      error = NULL;
-    }
-  j2c_logger_finer ("Indexing class path.");
+  j2c_index_init (max_threads);
+
   for (GSList *file = class_path_files->list; file; file = file->next)
-    {
-      if (!g_thread_pool_push (pool, file->data, &error))
-	{
-	  j2c_logger_severe ("%s", error->message);
-	  g_error_free (error);
-	  error = NULL;
-	}
-    }
-  g_thread_pool_free (pool, FALSE, TRUE);
+    j2c_index_insert (J2C_READABLE(file->data), FALSE);
+
   j2c_readable_list_destroy (class_path_files);
 
-  user_data[1] = index;
-  pool = g_thread_pool_new (j2c_index_files,
-			    user_data,
-			    max_threads,
-			    TRUE,
-			    &error);
-  if (error)
-    {
-      j2c_logger_severe ("Error creating thread pool: %s", error->message);
-      g_error_free (error);
-      error = NULL;
-    }
-  j2c_logger_finer ("Indexing target.");
   for (GSList *file = target_files->list; file; file = file->next)
-    {
-      if (!g_thread_pool_push (pool, file->data, &error))
-	{
-	  j2c_logger_severe ("%s", error->message);
-	  g_error_free (error);
-	  error = NULL;
-	}
-    }
-  g_thread_pool_free (pool, FALSE, TRUE);
+    j2c_index_insert (J2C_READABLE(file->data), TRUE);
+
   j2c_readable_list_destroy (target_files);
 
-  J2cIndexedFile *main = j2c_index_get_main (index);
+  j2c_index_lock ();
+
+  /****
+    BUILD DEPENDENCY TREE
+   ****/
+  j2c_logger_heading ("buidling dependency tree");
+  j2c_dependency_info_init (max_threads);
+
+  J2cIndexedFile *main = j2c_index_get_main ();
+  if (!main)
+    {
+      j2c_logger_fatal ("Could not fine public static void main() in target.");
+      exit (EXIT_FAILURE);
+    }
+
   J2cMethod *method = j2c_indexed_file_get_main (main);
-  J2cDependencyInfo *deps = g_object_new (J2C_TYPE_DEPENDENCY_INFO, NULL);
-  j2c_find_dependencies (method, deps);
+  j2c_dependency_info_add_method_call (method, NULL);
+  j2c_dependency_info_lock ();
 
   g_object_unref (method);
   g_object_unref (main);
-  g_object_unref (deps);
-
-
-  g_object_unref (index);
 }
 
 static gboolean
@@ -275,31 +246,4 @@ j2c_parse_input_files (gpointer data,
 	    	       gpointer user_data)
 {
   j2c_readable_list_add ((J2cReadableList *)user_data, (gchar const *const) data);
-}
-
-static void
-j2c_index_files (gpointer data, gpointer user_data)
-{
-  g_return_if_fail (NULL != user_data);
-  g_return_if_fail (J2C_IS_READABLE (data));
-
-  gpointer *args = (gpointer *) user_data;
-
-  j2c_index_insert_file ((J2cIndex *)args[0], J2C_READABLE (data), args[1] == NULL);
-}
-
-static void
-j2c_find_dependencies (gpointer data, gpointer user_data)
-{
-  J2cDependencyInfo *info = user_data;
-  J2cMethod *method = data;
-
-  gchar *method_name = j2c_method_get_java_name (method);
-  j2c_logger_fine ("Scanning %s", method_name);
-  g_free (method_name);
-
-  J2cDependencyInfo *result = j2c_method_get_dependency_info (method);
-  j2c_dependency_info_log_deps (result, J2C_LOGGER_LEVEL_FINE);
-
-  g_object_unref (result);
 }

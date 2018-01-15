@@ -20,7 +20,7 @@ struct _J2cCompilationUnitClass
   guint16 this_class;
   guint16 super_class;
 
-  GArray    *interfaces;
+  GArray         *interfaces;
   J2cObjectArray *fields;
   J2cObjectArray *methods;
   J2cObjectArray *attributes;
@@ -34,9 +34,11 @@ static void j2c_compilation_unit_class_get_property (GObject *object, guint prop
 
 /* J2cCompilationUnit methods */
 static void j2c_compilation_unit_interface_init (J2cCompilationUnitInterface *iface);
-static gchar const *j2c_compilation_unit_class_name (J2cCompilationUnit *compilation_unit);
+static gchar *j2c_compilation_unit_class_name (J2cCompilationUnit *compilation_unit);
 static J2cObjectArray *j2c_compilation_unit_class_get_type_dependencies (J2cCompilationUnit *compilation_unit);
 static J2cMethod *j2c_compilation_unit_class_get_method (J2cCompilationUnit *self, gchar *java_name, gchar *descriptor);
+static gchar *j2c_compilation_unit_class_superclass_name (J2cCompilationUnit *self);
+static gchar **j2c_compilation_unit_class_interfaces (J2cCompilationUnit *self);
 
 G_DEFINE_TYPE_WITH_CODE (J2cCompilationUnitClass, j2c_compilation_unit_class, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (J2C_TYPE_COMPILATION_UNIT, j2c_compilation_unit_interface_init))
@@ -310,6 +312,8 @@ j2c_compilation_unit_interface_init (J2cCompilationUnitInterface *iface)
   iface->name = j2c_compilation_unit_class_name;
   iface->get_type_dependencies = j2c_compilation_unit_class_get_type_dependencies;
   iface->get_method = j2c_compilation_unit_class_get_method;
+  iface->superclass_name = j2c_compilation_unit_class_superclass_name;
+  iface->interfaces = j2c_compilation_unit_class_interfaces;
 }
 
 static void
@@ -490,10 +494,10 @@ j2c_compilation_unit_class_get_property (GObject *object, guint property_id, GVa
   COMPILATION UNIT METHODS
  ****/
 
-static gchar const *
+static gchar *
 j2c_compilation_unit_class_name (J2cCompilationUnit *compilation_unit)
 {
-  return J2C_COMPILATION_UNIT_CLASS (compilation_unit)->name;
+  return g_strdup(J2C_COMPILATION_UNIT_CLASS (compilation_unit)->name);
 }
 
 static J2cObjectArray *
@@ -531,7 +535,7 @@ j2c_compilation_unit_class_get_method (J2cCompilationUnit *compilation_unit, gch
 
           if (g_strcmp0 (descriptor, method_descriptor) == 0)
             {
-              J2cByteCodeMethod *byte_method = j2c_byte_code_method_new (info, self->constant_pool, NULL);
+              J2cByteCodeMethod *byte_method = j2c_byte_code_method_new (self->name, info, self->constant_pool, NULL);
               ret = J2C_METHOD (byte_method);
             }
 
@@ -548,3 +552,51 @@ j2c_compilation_unit_class_get_method (J2cCompilationUnit *compilation_unit, gch
   return ret;
 }
 
+static gchar *
+j2c_compilation_unit_class_superclass_name (J2cCompilationUnit *__self)
+{
+  g_return_val_if_fail (__self != NULL, NULL);
+  g_return_val_if_fail (J2C_IS_COMPILATION_UNIT_CLASS (__self), NULL);
+
+  J2cCompilationUnitClass *self = J2C_COMPILATION_UNIT_CLASS (__self);
+  if (self->super_class == 0)
+    return NULL; /* This class must represent java/lang/Object */
+
+  J2cConstantPoolItem *info = j2c_constant_pool_get (self->constant_pool, self->super_class, NULL);
+  GValue value = G_VALUE_INIT;
+  g_value_init (&value, G_TYPE_UINT);
+  g_object_get_property (G_OBJECT (info), J2C_CONSTANT_POOL_PROP_NAME_INDEX, &value);
+  guint name_index = g_value_get_uint (&value);
+  g_value_unset (&value);
+  g_object_unref (info);
+
+  return j2c_constant_pool_get_string (self->constant_pool, name_index, NULL);
+}
+
+static gchar **
+j2c_compilation_unit_class_interfaces (J2cCompilationUnit *__self)
+{
+  g_return_val_if_fail (__self != NULL, NULL);
+  g_return_val_if_fail (J2C_IS_COMPILATION_UNIT_CLASS (__self), NULL);
+
+  J2cCompilationUnitClass *self = J2C_COMPILATION_UNIT_CLASS (__self);
+  guint len = self->interfaces->len;
+  guint16 *ifaces = (guint16 *)self->interfaces->data;
+
+  gchar **ret = g_malloc0 (sizeof (gchar *) * (len + 1));
+  for (gint i = 0; i < len; i++)
+    {
+      J2cConstantPoolItem *info = j2c_constant_pool_get (self->constant_pool, ifaces[i], NULL);
+
+      GValue value = G_VALUE_INIT;
+      g_value_init (&value, G_TYPE_UINT);
+      g_object_get_property (G_OBJECT (info), J2C_CONSTANT_POOL_PROP_NAME_INDEX, &value);
+      guint name_index = g_value_get_uint (&value);
+      g_value_unset (&value);
+      g_object_unref (info);
+
+      ret[i] = j2c_constant_pool_get_string (self->constant_pool, name_index, NULL);
+    }
+
+  return ret;
+}

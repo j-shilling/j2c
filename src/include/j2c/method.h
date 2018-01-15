@@ -3,12 +3,13 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include <j2c/dependency-info.h>
 
 G_BEGIN_DECLS
 
 #define J2C_TYPE_METHOD     j2c_method_get_type ()
 G_DECLARE_DERIVABLE_TYPE (J2cMethod, j2c_method, J2C, METHOD, GObject)
+
+static gchar const *const J2C_METHOD_PROP_DEFINING_TYPE = "type";
 
 struct _J2cMethodClass
 {
@@ -17,13 +18,15 @@ struct _J2cMethodClass
   gchar *(*get_descriptor) (J2cMethod *self);
   gchar *(*get_java_name) (J2cMethod *self);
   guint16 (*get_access_flags) (J2cMethod *self);
-  J2cDependencyInfo *(*get_dependency_info) (J2cMethod *self);
+  gchar **(*get_reference_types) (J2cMethod *self, gchar **param_types, GError **error);
 };
 
 gchar *j2c_method_get_descriptor (J2cMethod *self);
 gchar *j2c_method_get_java_name (J2cMethod *self);
 guint16 j2c_method_get_access_flags (J2cMethod *self);
-J2cDependencyInfo *j2c_method_get_dependency_info (J2cMethod *self);
+gchar **j2c_method_get_reference_types (J2cMethod *self, gchar **param_types, GError **error);
+
+gchar *j2c_method_get_defining_type (J2cMethod *self);
 
 typedef enum
 {

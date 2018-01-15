@@ -12,7 +12,7 @@ G_BEGIN_DECLS
 #define J2C_TYPE_BYTE_CODE_METHOD   j2c_byte_code_method_get_type ()
 G_DECLARE_FINAL_TYPE(J2cByteCodeMethod, j2c_byte_code_method, J2C, BYTE_CODE_METHOD, J2cMethod)
 
-J2cByteCodeMethod *j2c_byte_code_method_new (J2cMethodInfo *info, J2cConstantPool *constant_pool, GError **error);
+J2cByteCodeMethod *j2c_byte_code_method_new (gchar *type, J2cMethodInfo *info, J2cConstantPool *constant_pool, GError **error);
 
 G_END_DECLS
 

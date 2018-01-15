@@ -2,16 +2,12 @@
 #define __DEPENDENCY_INFO_H__
 
 #include <glib.h>
-#include <glib-object.h>
+#include <j2c/method.h>
 
-G_BEGIN_DECLS
+void j2c_dependency_info_init (gint max_threads);
 
-#define J2C_TYPE_DEPENDENCY_INFO    j2c_dependency_info_get_type ()
-G_DECLARE_FINAL_TYPE (J2cDependencyInfo, j2c_dependency_info, J2C, DEPENDENCY_INFO, GObject)
-
-void j2c_dependency_info_requires_type (J2cDependencyInfo *self, gchar *java_name);
-void j2c_dependency_info_log_deps (J2cDependencyInfo *self, J2cLoggerLevel level);
-
-G_END_DECLS
+void j2c_dependency_info_add_method_call (J2cMethod *method, gchar **param_types);
+void j2c_dependency_info_add_reference (gchar *type_descriptor);
+void j2c_dependency_info_lock (void);
 
 #endif // __DEPENDENCY_INFO_H__
