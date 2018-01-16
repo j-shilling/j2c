@@ -10,12 +10,14 @@ struct _J2cJarFile
   GObject parent_instance;
   GFile *file;
   gint64 entries;
+
+  zip_t *zip;
 };
 
 struct _J2cJarMember
 {
   GObject parent_instance;
-  GFile *file;
+  J2cJarFile *file;
   gchar *name;
   gint64 index;
 };
@@ -117,7 +119,7 @@ j2c_jar_file_new (GFile *file, GError **error)
 }
 
 static J2cJarMember *
-j2c_jar_member_new (GFile *file, gint64 index)
+j2c_jar_member_new (J2cJarFile *file, gint64 index)
 {
   return g_object_new (J2C_TYPE_JAR_MEMBER,
 		       J2C_JAR_FILE_PROPERTY_FILE, file,
@@ -156,7 +158,7 @@ j2c_jar_member_class_init (J2cJarMemberClass *klass)
     g_param_spec_object (J2C_JAR_FILE_PROPERTY_FILE,
 			 "file",
 			 "Identifier for the local file",
-			 G_TYPE_FILE,
+			 J2C_TYPE_JAR_FILE,
 			 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
   g_object_class_install_property (object_class, PROP_INDEX,
     g_param_spec_int64 (J2C_JAR_FILE_PROPERTY_INDEX,
@@ -219,6 +221,8 @@ j2c_jar_file_dispose (GObject *object)
 
   if (self->file)
     g_clear_object (&self->file);
+  if (self->zip)
+    j2c_jar_file_close (self, NULL);
 
   G_OBJECT_CLASS (j2c_jar_file_parent_class)->dispose (object);
 }
@@ -409,7 +413,7 @@ j2c_jar_file_expand (J2cJarFile *self)
   gint index = 0;
   for (guint64 i = 0; i < len; i++)
     {
-      J2cReadable *readable = J2C_READABLE (j2c_jar_member_new (self->file, i));
+      J2cReadable *readable = J2C_READABLE (j2c_jar_member_new (self, i));
       const gchar *name = j2c_readable_name (readable);
 
       if (name[strlen (name) - 1] == '/')
@@ -424,4 +428,44 @@ j2c_jar_file_expand (J2cJarFile *self)
     }
 
   return ret;
+}
+
+zip_t *
+j2c_jar_file_open (J2cJarFile *self, GError **error)
+{
+  g_return_val_if_fail (self != NULL, NULL);
+
+  if (!self->zip)
+    {
+      gchar *path = g_file_get_path (self->file);
+
+      int zerror = 0;
+      zip = zip_open (path, ZIP_RDONLY, &zerror);
+      if (!zip)
+	j2c_zip_input_stream_set_error_from_code (zerror, path, error);
+      
+      g_free (path);
+    }
+
+  return self->zip;
+}
+
+gboolean
+j2c_jar_file_close (J2cJarFile *self, GError **error)
+{
+  g_return_val_if_fail (self != NULL, FALSE);
+
+  if (!self->zip)
+    return TRUE;
+
+  if (0 != zip_close (zip))
+    {
+      gchar *path = g_file_get_path (self->file);
+      zip_error_t *zer = zip_get_error (zip);
+      j2c_zip_input_stream_set_error (zer, path, error);
+      g_free (path);
+      return FALSE;
+    }
+
+  return TRUE;
 }

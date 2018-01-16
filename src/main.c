@@ -135,61 +135,27 @@ main (gint argc, gchar *argv[])
 
   j2c_logger_heading ("Scanning input files.");
 
-  J2cReadableList *class_path_files = j2c_readable_list_new ();
-  GThreadPool *pool = g_thread_pool_new (j2c_parse_input_files,
-					 class_path_files,
-					 max_threads,
-					 TRUE,
-					 &error);
-  if (error)
-    {
-      j2c_logger_severe ("Error creating thread pool: %s", error->message);
-      g_error_free (error);
-      error = NULL;
-    }
-
   j2c_logger_finest ("Parsing class path files.");
+  j2c_readable_list_init (max_threads);
   for (gchar **filename = class_path_filenames;
        filename && *filename; filename ++)
     {
-      if (!g_thread_pool_push (pool, *filename, &error))
-	{
-	  j2c_logger_severe ("%s", error->message);
-	  g_error_free (error);
-	  error = NULL;
-	}
+      GFile *file = g_file_new_for_commandline_arg (*filename);
+      j2c_readable_list_add (file);
     }
-
-  g_thread_pool_free (pool, FALSE, TRUE);
   g_strfreev (class_path_filenames);
-
-  J2cReadableList *target_files = j2c_readable_list_new ();
-  pool = g_thread_pool_new (j2c_parse_input_files,
-			    target_files,
-			    max_threads,
-			    TRUE,
-			    &error);
-  if (error)
-    {
-      j2c_logger_severe ("Error creating thread pool: %s", error->message);
-      g_error_free (error);
-      error = NULL;
-    }
+  GSList *class_path_files = j2c_readable_list_finish ();
 
   j2c_logger_finest ("Parsing target files.");
+  j2c_readable_list_init (max_threads);
   for (gchar **filename = target_filenames;
        filename && *filename; filename ++)
     {
-      if (!g_thread_pool_push (pool, *filename, &error))
-	{
-	  j2c_logger_severe ("%s", error->message);
-	  g_error_free (error);
-	  error = NULL;
-	}
+      GFile *file = g_file_new_for_commandline_arg (*filename);
+      j2c_readable_list_add (file);
     }
-
-  g_thread_pool_free (pool, FALSE, TRUE);
   g_strfreev (target_filenames);
+  GSList *target_files = j2c_readable_list_finish ();
 
   /****
     INDEXING FILES
@@ -198,15 +164,11 @@ main (gint argc, gchar *argv[])
   j2c_logger_heading ("indexing files");
   j2c_index_init (max_threads);
 
-  for (GSList *file = class_path_files->list; file; file = file->next)
+  for (GSList *file = class_path_files; file; file = file->next)
     j2c_index_insert (J2C_READABLE(file->data), FALSE);
 
-  j2c_readable_list_destroy (class_path_files);
-
-  for (GSList *file = target_files->list; file; file = file->next)
+  for (GSList *file = target_files; file; file = file->next)
     j2c_index_insert (J2C_READABLE(file->data), TRUE);
-
-  j2c_readable_list_destroy (target_files);
 
   j2c_index_lock ();
 
@@ -239,11 +201,4 @@ j2c_parse_verbosity (const gchar *option_name,
 {
   verbosity ++;
   return TRUE;
-}
-
-static void
-j2c_parse_input_files (gpointer data,
-	    	       gpointer user_data)
-{
-  j2c_readable_list_add ((J2cReadableList *)user_data, (gchar const *const) data);
 }
