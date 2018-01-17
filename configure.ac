@@ -6,7 +6,10 @@ AC_INIT([j2c],[0.1],[shilling.jake@gmail.com])
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
 
 AC_CONFIG_SRCDIR([src/main.c])
-AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([src/include/config.h])
+
+AC_ARG_VAR([JAVA_HOME], [Path to JRE directory])
+AC_DEFINE_UNQUOTED([JAVA_HOME], [$JAVA_HOME], [Path to JRE directory])
 
 # Checks for programs.
 AC_PROG_CC
@@ -27,5 +30,7 @@ AC_CONFIG_FILES([Makefile
                  src/indexer/Makefile
 		 src/dependencies/Makefile
 		 src/compilation_unit/Makefile
-		 src/compilation_unit/class_file/Makefile])
+		 src/compilation_unit/class_file/Makefile
+		 tests/Makefile
+		 tests/reader/Makefile])
 AC_OUTPUT
