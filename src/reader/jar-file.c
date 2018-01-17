@@ -1,6 +1,7 @@
 #include <j2c/jar-file.h>
 #include <j2c/indexed-file.h>
 #include <j2c/zip-input-stream.h>
+#include <j2c/jar-member.h>
 
 #include <string.h>
 #include <zip.h>
@@ -8,19 +9,15 @@
 struct _J2cJarFile
 {
   GObject parent_instance;
+
   GFile *file;
   gint64 entries;
 
   zip_t *zip;
+  GMutex mutex;
+  guint open_files;
 };
 
-struct _J2cJarMember
-{
-  GObject parent_instance;
-  J2cJarFile *file;
-  gchar *name;
-  gint64 index;
-};
 
 /* structures related to object properties */
 enum
@@ -75,10 +72,6 @@ G_DEFINE_TYPE_WITH_CODE (J2cJarFile, j2c_jar_file, G_TYPE_OBJECT,
 			 G_IMPLEMENT_INTERFACE (G_TYPE_INITABLE,
 						j2c_jar_file_initable_interface_init))
 
-G_DEFINE_TYPE_WITH_CODE (J2cJarMember, j2c_jar_member, G_TYPE_OBJECT,
-			 G_IMPLEMENT_INTERFACE (J2C_TYPE_READABLE,
-						j2c_jar_member_readable_interface_init))
-
 /* Error Code Quark */
 GQuark
 j2c_jar_file_quark (void)
@@ -118,15 +111,6 @@ j2c_jar_file_new (GFile *file, GError **error)
   return ret;
 }
 
-static J2cJarMember *
-j2c_jar_member_new (J2cJarFile *file, gint64 index)
-{
-  return g_object_new (J2C_TYPE_JAR_MEMBER,
-		       J2C_JAR_FILE_PROPERTY_FILE, file,
-		       J2C_JAR_FILE_PROPERTY_INDEX, index,
-		       NULL);
-}
-
 static void
 j2c_jar_file_class_init (J2cJarFileClass *klass)
 {
@@ -144,70 +128,18 @@ j2c_jar_file_class_init (J2cJarFileClass *klass)
 			 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 }
 
-static void
-j2c_jar_member_class_init (J2cJarMemberClass *klass)
-{
-  GObjectClass *object_class = G_OBJECT_CLASS (klass);
 
-  object_class->set_property = j2c_jar_member_set_property;
-  object_class->get_property = j2c_jar_member_get_property;
-  object_class->dispose = j2c_jar_member_dispose;
-  object_class->constructed = j2c_jar_member_constructed;
-
-  g_object_class_install_property (object_class, PROP_FILE,
-    g_param_spec_object (J2C_JAR_FILE_PROPERTY_FILE,
-			 "file",
-			 "Identifier for the local file",
-			 J2C_TYPE_JAR_FILE,
-			 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-  g_object_class_install_property (object_class, PROP_INDEX,
-    g_param_spec_int64 (J2C_JAR_FILE_PROPERTY_INDEX,
-			 "index",
-			 "index within the jar file",
-			 G_MININT64, G_MAXINT64, -1,
-			 G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-}
 
 static void
 j2c_jar_file_init (J2cJarFile *self)
 {
-  return;
-}
-
-static void
-j2c_jar_member_init (J2cJarMember *self)
-{
-  return;
+  g_mutex_init (&self->mutex);
 }
 
 static void
 j2c_jar_file_initable_interface_init (GInitableIface *iface)
 {
   iface->init = j2c_jar_file_initable_init;
-}
-
-static void
-j2c_jar_member_readable_interface_init (J2cReadableInterface *iface)
-{
-  iface->read = j2c_jar_member_read;
-  iface->name = j2c_jar_member_name;
-}
-
-static void
-j2c_jar_member_constructed (GObject *object)
-{
-  J2cJarMember *self = J2C_JAR_MEMBER (object);
-
-  gchar *path = g_file_get_path (self->file);
-  zip_t *zip = zip_open (path, ZIP_RDONLY, NULL);
-  g_return_if_fail (NULL != zip);
-
-  const gchar *name = zip_get_name (zip, self->index, ZIP_FL_ENC_GUESS);
-  g_return_if_fail (NULL != name);
-
-  self->name = g_strdup_printf ("%s:%s", path, name);
-  g_free (path);
-  zip_close (zip);
 }
 
 /****
@@ -219,26 +151,13 @@ j2c_jar_file_dispose (GObject *object)
 {
   J2cJarFile *self = J2C_JAR_FILE (object);
 
+  g_mutex_lock (&self->mutex);
   if (self->file)
     g_clear_object (&self->file);
   if (self->zip)
     j2c_jar_file_close (self, NULL);
-
-  G_OBJECT_CLASS (j2c_jar_file_parent_class)->dispose (object);
-}
-
-static void
-j2c_jar_member_dispose (GObject *object)
-{
-  J2cJarMember *self = J2C_JAR_MEMBER (object);
-
-  if (self->file)
-    g_clear_object (&self->file);
-  if (self->name)
-    {
-      g_free (self->name);
-      self->name = NULL;
-    }
+  g_mutex_unlock (&self->mutex);
+  g_mutex_clear (&self->mutex);
 
   G_OBJECT_CLASS (j2c_jar_file_parent_class)->dispose (object);
 }
@@ -293,60 +212,6 @@ j2c_jar_file_get_property (GObject *object,
     }
 }
 
-static void
-j2c_jar_member_set_property (GObject *object,
-	     		     guint property_id,
-			     const GValue *value,
-			     GParamSpec *pspec)
-{
-  J2cJarMember *self = J2C_JAR_MEMBER (object);
-
-  switch (property_id)
-    {
-    case PROP_FILE:
-      if (self->file)
-	{
-	  g_warning ("%s can only be set once.", J2C_JAR_FILE_PROPERTY_FILE);
-	  break;
-	}
-
-      self->file = g_value_dup_object (value);
-      break;
-
-    case PROP_INDEX:
-      self->index = g_value_get_int64 (value);
-      break;
-
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
-    }
-}
-
-static void
-j2c_jar_member_get_property (GObject *object,
-			      guint property_id,
-			      GValue *value,
-			      GParamSpec *pspec)
-{
-  J2cJarMember *self = J2C_JAR_MEMBER (object);
-
-  switch (property_id)
-    {
-    case PROP_FILE:
-      g_value_set_object (value, self->file);
-      break;
-
-    case PROP_INDEX:
-      g_value_set_int64 (value, self->index);
-      break;
-
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
-    }
-}
-
 /****
  * INITABLE METHODS
  */
@@ -380,25 +245,6 @@ j2c_jar_file_initable_init (GInitable *initable, GCancellable *cancellable, GErr
 }
 
 /****
- * READABLE METHODS
- */
-
-static GInputStream *
-j2c_jar_member_read (J2cReadable *self, GError **error)
-{
-  J2cJarMember *jar = J2C_JAR_MEMBER (self);
-  return G_INPUT_STREAM(j2c_zip_input_stream_open (jar->file, jar->index, error));
-}
-
-const gchar *
-j2c_jar_member_name (J2cReadable *self)
-{
-  J2cJarMember *jar = J2C_JAR_MEMBER (self);
-  return jar->name;
-}
-
-
-/****
  * PUBLIC METHODS
  */
 
@@ -411,21 +257,19 @@ j2c_jar_file_expand (J2cJarFile *self)
   J2cReadable **ret = g_malloc0 (sizeof (J2cReadable *) * (len + 1));
 
   gint index = 0;
+  zip_t *zip = j2c_jar_file_open (self, NULL);
   for (guint64 i = 0; i < len; i++)
     {
-      J2cReadable *readable = J2C_READABLE (j2c_jar_member_new (self, i));
-      const gchar *name = j2c_readable_name (readable);
+      const gchar *name = zip_get_name (zip, i, ZIP_FL_ENC_GUESS);
 
-      if (name[strlen (name) - 1] == '/')
-	{
-	  g_object_unref (readable);
-	}
-      else
-	{
-	  ret[index] = readable;
-	  index ++;
-	}
+      if (!name || name[strlen(name) - 1] == '/')
+	continue;
+
+      J2cReadable *readable = J2C_READABLE (j2c_jar_member_new (self, i, name));
+      ret[index] = readable;
+      index ++;
     }
+  j2c_jar_file_close (self, NULL);
 
   return ret;
 }
@@ -435,17 +279,21 @@ j2c_jar_file_open (J2cJarFile *self, GError **error)
 {
   g_return_val_if_fail (self != NULL, NULL);
 
+  g_mutex_lock (&self->mutex);
   if (!self->zip)
     {
       gchar *path = g_file_get_path (self->file);
 
       int zerror = 0;
-      zip = zip_open (path, ZIP_RDONLY, &zerror);
-      if (!zip)
+      self->zip = zip_open (path, ZIP_RDONLY, &zerror);
+      if (!self->zip)
 	j2c_zip_input_stream_set_error_from_code (zerror, path, error);
       
       g_free (path);
     }
+
+  self->open_files++;
+  g_mutex_unlock (&self->mutex);
 
   return self->zip;
 }
@@ -455,17 +303,22 @@ j2c_jar_file_close (J2cJarFile *self, GError **error)
 {
   g_return_val_if_fail (self != NULL, FALSE);
 
-  if (!self->zip)
-    return TRUE;
-
-  if (0 != zip_close (zip))
+  g_mutex_lock (&self->mutex);
+  self->open_files --;
+  if (!self->open_files && self->zip)
     {
-      gchar *path = g_file_get_path (self->file);
-      zip_error_t *zer = zip_get_error (zip);
-      j2c_zip_input_stream_set_error (zer, path, error);
-      g_free (path);
-      return FALSE;
+      if (0 != zip_close (self->zip))
+	{
+	  gchar *path = g_file_get_path (self->file);
+	  zip_error_t *zer = zip_get_error (self->zip);
+	  j2c_zip_input_stream_set_error (zer, path, error);
+	  g_free (path);
+	  g_mutex_unlock (&self->mutex);
+	  return FALSE;
+	}
+      self->zip = NULL;
     }
 
+  g_mutex_unlock (&self->mutex);
   return TRUE;
 }

@@ -11,7 +11,8 @@
 struct _J2cZipInputStream
 {
   GInputStream parent_instance;
-  zip_t *zip;
+
+  J2cJarFile *jar;
   zip_file_t *file;
 };
 
@@ -22,12 +23,6 @@ G_DEFINE_TYPE(J2cZipInputStream, j2c_zip_input_stream, G_TYPE_INPUT_STREAM)
  */
 
 /* GObjectClass */
-static void
-j2c_zip_input_stream_set_property (GObject *object, guint property_id,
-				   const GValue *value, GParamSpec *pspec);
-static void
-j2c_zip_input_stream_get_property (GObject *object, guint property_id,
-				   GValue *value, GParamSpec *pspec);
 static void
 j2c_zip_input_stream_dispose (GObject *object);
 
@@ -47,15 +42,19 @@ j2c_zip_input_stream_close_fn (GInputStream *stream, GCancellable *cancellable,
  */
 
 J2cZipInputStream *
-j2c_zip_input_stream_open (zip_t *zip, guint64 index, GError **error)
+j2c_zip_input_stream_open (J2cJarFile *jar, guint64 index, GError **error)
 {
-  g_return_val_if_fail (zip != NULL, NULL);
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+  g_return_val_if_fail (jar != NULL, NULL);
 
-  gint ze = ZIP_ER_OK;
-
+  zip_t *zip = j2c_jar_file_open (jar, error);
   zip_file_t *zfile = zip_fopen_index (zip, index, ZIP_FL_UNCHANGED);
 
-  return g_object_new (J2C_TYPE_ZIP_INPUT_STREAM, "zip", zip, "file", zfile, NULL);
+  J2cZipInputStream *ret = g_object_new (J2C_TYPE_ZIP_INPUT_STREAM, NULL);
+  ret->jar = g_object_ref (jar);
+  ret->file = zfile;
+
+  return ret;
 }
 
 static void
@@ -63,16 +62,7 @@ j2c_zip_input_stream_class_init (J2cZipInputStreamClass *klass)
 {
   GObjectClass *object_class = G_OBJECT_CLASS(klass);
 
-  object_class->set_property = j2c_zip_input_stream_set_property;
-  object_class->get_property = j2c_zip_input_stream_get_property;
   object_class->dispose = j2c_zip_input_stream_dispose;
-
-  g_object_class_install_property (
-      object_class, 1,
-      g_param_spec_pointer ("zip", "zip", "zip_t for the zip file", G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-  g_object_class_install_property (
-      object_class, 2,
-      g_param_spec_pointer ("file", "file", "zip_file_t for the file in a zip", G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
   GInputStreamClass *input_stream_class = G_INPUT_STREAM_CLASS(klass);
   input_stream_class->read_fn = j2c_zip_input_stream_read_fn;
@@ -95,69 +85,22 @@ j2c_zip_input_stream_dispose (GObject *object)
   J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (object);
 
   if (self->file)
-    zip_fclose (self->file);
-  if (self->zip)
-    zip_close (self->zip);
+    {
+      //zip_fclose (self->file);
+      self->file = NULL;
+    }
 
-  self->file = NULL;
-  self->zip = NULL;
+  if (self->jar)
+    {
+      j2c_jar_file_close (self->jar, NULL);
+      g_clear_object (&self->jar);
+    }
 }
 
 /****
  * PRIV METHOD DEFINITIONS
  */
 
-
-
-static void
-j2c_zip_input_stream_set_property (GObject *object, guint property_id,
-				   const GValue *value, GParamSpec *pspec)
-{
-  if (property_id == 1)
-    {
-      J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (object);
-      zip_t *zip = g_value_get_pointer (value);
-
-      if (self->zip == NULL)
-	self->zip = zip;
-      else if (self->zip != zip)
-	g_warning ("J2cZipInputStream::zip should only be set once.");
-    }
-  else if (property_id == 2)
-    {
-      J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (object);
-      zip_file_t *file = g_value_get_pointer (value);
-
-      if (self->file == NULL)
-	self->file = file;
-      else if (self->file != file)
-	g_warning ("J2cZipInputStream::file should only be set once.");
-    }
-  else
-    {
-      G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
-
-static void
-j2c_zip_input_stream_get_property (GObject *object, guint property_id,
-				   GValue *value, GParamSpec *pspec)
-{
-  if (property_id == 1)
-    {
-      J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (object);
-      g_value_set_pointer (value, self->zip);
-    }
-  else if (property_id == 2)
-    {
-      J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (object);
-      g_value_set_pointer (value, self->file);
-    }
-  else
-    {
-      G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-    }
-}
 static gssize
 j2c_zip_input_stream_read_fn (GInputStream *stream, void *buffer, gsize count,
 			      GCancellable *cancellable, GError **error)
@@ -168,14 +111,21 @@ j2c_zip_input_stream_read_fn (GInputStream *stream, void *buffer, gsize count,
 
   J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (stream);
 
-  GError *tmp_error = NULL;
   zip_int64_t ret = zip_fread (self->file, buffer, count);
   if (ret != count)
     {
-      zip_error_t *zer = zip_file_get_error (self->file);
-      j2c_zip_input_stream_set_error (zer, NULL, &tmp_error);
-      if (tmp_error)
-	g_propagate_error (error, tmp_error);
+      if (self->file)
+	{
+	  zip_error_t *zer = zip_file_get_error (self->file);
+	  j2c_zip_input_stream_set_error (zer, NULL, error);
+	}
+      else
+	{
+	  g_set_error (error,
+		       J2C_ZIP_ERROR,
+		       J2C_ZIP_CLOSE_ERROR,
+		       "This stream is closed.");
+	}
     }
 
   return (gssize) ret;
@@ -210,37 +160,19 @@ static gboolean
 j2c_zip_input_stream_close_fn (GInputStream *stream, GCancellable *cancellable,
 			       GError **error)
 {
-  GError *tmp_error = NULL;
+  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
+  g_return_val_if_fail (stream != NULL, FALSE);
   J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (stream);
 
   if (self->file)
     {
-      gint zer = zip_fclose (self->file);
-      if (zer != ZIP_ER_OK)
-	{
-	  j2c_zip_input_stream_set_error_from_code (zer, NULL, &tmp_error);
-	  if (tmp_error)
-	    g_propagate_error (error, tmp_error);
-
-	  return FALSE;
-	}
-
       self->file = NULL;
     }
 
-  if (self->zip)
+  if (self->jar)
     {
-      if (0 != zip_close (self->zip))
-	{
-	  zip_error_t *zer = zip_get_error (self->zip);
-	  j2c_zip_input_stream_set_error (zer, NULL, &tmp_error);
-	  if (tmp_error)
-	    g_propagate_error (error, tmp_error);
-
-	  return FALSE;
-	}
-
-      self->zip = NULL;
+      j2c_jar_file_close (self->jar, error);
+      g_clear_object (&self->jar);
     }
 
   return TRUE;
@@ -253,8 +185,7 @@ j2c_zip_input_stream_close_fn (GInputStream *stream, GCancellable *cancellable,
 gboolean
 j2c_zip_input_stream_set_error (zip_error_t *zer, gchar *path, GError **error)
 {
-  g_return_val_if_fail(NULL != error, FALSE);
-  g_return_val_if_fail(NULL == *error, FALSE);
+  g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
   g_return_val_if_fail(NULL != zer, FALSE);
 
   if (zip_error_code_zip (zer) == J2C_ZIP_OK)
@@ -275,8 +206,7 @@ j2c_zip_input_stream_set_error (zip_error_t *zer, gchar *path, GError **error)
 gboolean
 j2c_zip_input_stream_set_error_from_code (gint zer, gchar *path, GError **error)
 {
-  g_return_val_if_fail(NULL != error, FALSE);
-  g_return_val_if_fail(NULL == *error, FALSE);
+  g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
   g_return_val_if_fail(zer != ZIP_ER_OK, FALSE);
 
   zip_error_t *ze = g_malloc (sizeof(zip_error_t));

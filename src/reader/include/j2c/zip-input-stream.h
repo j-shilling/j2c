@@ -7,6 +7,8 @@
 
 #include <zip.h>
 
+#include <j2c/jar-file.h>
+
 G_BEGIN_DECLS
 
 #define J2C_ZIP_ERROR	g_quark_from_static_string ("j2c-zip-input-stream")
@@ -50,7 +52,7 @@ typedef enum
 #define J2C_TYPE_ZIP_INPUT_STREAM	j2c_zip_input_stream_get_type ()
 G_DECLARE_FINAL_TYPE (J2cZipInputStream, j2c_zip_input_stream, J2C, ZIP_INPUT_STREAM, GInputStream);
 
-J2cZipInputStream *j2c_zip_input_stream_open (GFile *file, guint64 index, GError **error);
+J2cZipInputStream *j2c_zip_input_stream_open (J2cJarFile *file, guint64 index, GError **error);
 
 GQuark
 j2c_zip_input_stream_quark (void);

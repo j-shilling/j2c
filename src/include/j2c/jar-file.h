@@ -18,9 +18,7 @@ typedef enum
 } J2cJarFileError;
 
 #define J2C_TYPE_JAR_FILE	j2c_jar_file_get_type ()
-#define J2C_TYPE_JAR_MEMBER	j2c_jar_member_get_type ()
 G_DECLARE_FINAL_TYPE (J2cJarFile, j2c_jar_file, J2C, JAR_FILE, GObject);
-G_DECLARE_FINAL_TYPE (J2cJarMember, j2c_jar_member, J2C, JAR_MEMBER, GObject);
 
 J2cJarFile *j2c_jar_file_new (GFile *file, GError **error);
 J2cReadable **j2c_jar_file_expand (J2cJarFile *self);
