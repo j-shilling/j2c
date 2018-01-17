@@ -1,1 +1,2 @@
-SUBDIRS = reader
+SUBDIRS = jre \
+          reader

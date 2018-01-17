@@ -9,7 +9,7 @@ AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_HEADERS([src/include/config.h])
 
 AC_ARG_VAR([JAVA_HOME], [Path to JRE directory])
-AC_DEFINE_UNQUOTED([JAVA_HOME], [$JAVA_HOME], [Path to JRE directory])
+AC_DEFINE_UNQUOTED([JAVA_HOME], ["$JAVA_HOME"], [Path to JRE directory])
 
 # Checks for programs.
 AC_PROG_CC
@@ -24,6 +24,7 @@ PKG_CHECK_MODULES([ZIP], [libzip])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+		 src/jre/Makefile
 		 src/util/Makefile
                  src/logger/Makefile
 		 src/reader/Makefile
@@ -32,5 +33,6 @@ AC_CONFIG_FILES([Makefile
 		 src/compilation_unit/Makefile
 		 src/compilation_unit/class_file/Makefile
 		 tests/Makefile
+		 tests/jre/Makefile
 		 tests/reader/Makefile])
 AC_OUTPUT

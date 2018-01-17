@@ -33,7 +33,9 @@ j2c_jre_get_lib_dir (void)
   GFile *ret = g_weak_ref_get (ref);
   if (!ret)
     {
-      ret = g_file_new_for_path (j2c_jre_get_jre_path ());
+      GFile *jre = g_file_new_for_path (j2c_jre_get_jre_path ());
+      ret = g_file_get_child (jre, "lib");
+      g_object_unref (jre);
       g_weak_ref_set (ref, ret);
     }
 

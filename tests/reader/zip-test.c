@@ -20,7 +20,7 @@ main (int argc, char *argv[])
 
   g_test_init (&argc, &argv, NULL);
 
-  g_test_add_func ("/zip/zip-new", zip_test_new);
+  g_test_add_func ("/zip/zip-new", zip_test_zip_new);
 
   return g_test_run();
 }
