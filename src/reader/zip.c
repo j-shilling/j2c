@@ -57,8 +57,8 @@ j2c_zip_dispose (GObject *object)
 {
   J2cZip *self = J2C_ZIP (object);
 
-  if (self->mutex)
-    g_mutex_lock (self->mutex);
+  if (self->zip)
+    j2c_zip_close (self, NULL);
 
   if (self->open_zip_files)
     {
@@ -71,8 +71,8 @@ j2c_zip_dispose (GObject *object)
 
   if (self->mutex)
     {
-      g_mutex_unlock (self->mutex);
       g_mutex_clear (self->mutex);
+      g_free (self->mutex);
       self->mutex = NULL;
     }
 
@@ -90,6 +90,7 @@ j2c_zip_init (J2cZip *self)
 {
   self->zip = NULL;
   g_datalist_init (&self->open_zip_files);
+  self->mutex = g_malloc (sizeof (GMutex));
   g_mutex_init (self->mutex);
 }
 
@@ -125,7 +126,7 @@ j2c_zip_file_dispose (GObject *object)
 static void
 j2c_zip_file_class_init (J2cZipFileClass *klass)
 {
-  G_OBJECT_CLASS (klass)->dispose = j2c_zip_dispose;
+  G_OBJECT_CLASS (klass)->dispose = j2c_zip_file_dispose;
 }
 
 static void
@@ -227,6 +228,19 @@ j2c_zip_close (J2cZip *self, GError **error)
 
   g_mutex_unlock (self->mutex);
 
+  return ret;
+}
+
+guint64
+j2c_zip_num_entries (J2cZip *self, GError **error)
+{
+  g_return_val_if_fail (error == NULL || *error == NULL, 0);
+  g_return_val_if_fail (self != NULL, 0);
+  g_return_val_if_fail (self->zip != NULL, 0);
+ 
+  g_mutex_lock (self->mutex);
+  guint64 ret = zip_get_num_entries (self->zip, ZIP_FL_UNCHANGED);
+  g_mutex_unlock (self->mutex);
   return ret;
 }
 

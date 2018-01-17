@@ -52,6 +52,7 @@ G_DECLARE_FINAL_TYPE (J2cZipFile, j2c_zip_file, J2C, ZIP_FILE, GObject)
 J2cZip *j2c_zip_new (GFile *file, GError **error);
 gchar *j2c_zip_get_name (J2cZip *self, guint64 index, GError **error);
 gboolean j2c_zip_close (J2cZip *self, GError **error);
+guint64 j2c_zip_num_entries (J2cZip *self, GError **error);
 
 J2cZipFile *j2c_zip_file_open (J2cZip *zip, guint64 index, GError **error);
 gssize j2c_zip_file_read (J2cZipFile *self, void *buffer, gsize size, GError **error);

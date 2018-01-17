@@ -6,4 +6,5 @@ zip_test_CFLAGS = $(GLIB_CFLAGS) $(GIO_CLFAGS) $(GOBJECT_CFLAGS) $(ZIP_CFLAGS) \
                   -I$(top_srcdir)/src/include \
 		  -I$(top_srcdir)/src/reader/include
 zip_test_LDADD = $(GLIB_LIBS) $(GIO_LIBS) $(GOBJECT_LIBS) $(ZIP_LIBS) \
+                 $(top_srcdir)/src/jre/libjre.a \
                  $(top_srcdir)/src/reader/libreader.a
