@@ -262,7 +262,7 @@ j2c_zip_file_open (J2cZip *zip, guint64 index, GError **error)
     }
 
 
-  zip_file_t *file = zip_fopen_index (zip->zip, index, ZIP_FL_COMPRESSED);
+  zip_file_t *file = zip_fopen_index (zip->zip, index, ZIP_FL_UNCHANGED);
   if (!file)
     {
       zip_error_t *zer = zip_get_error (zip->zip);

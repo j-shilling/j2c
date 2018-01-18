@@ -89,8 +89,12 @@ j2c_class_file_initable_init (GInitable *initable, GCancellable *cancellable, GE
   GError *tmp_error = NULL;
 
   J2cClassFile *self = J2C_CLASS_FILE (initable);
-  GDataInputStream *stream = j2c_indexed_file_read (J2C_INDEXED_FILE (self), error);
-  if (*error) return FALSE;
+  GDataInputStream *stream = j2c_indexed_file_read (J2C_INDEXED_FILE (self), &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      return FALSE;
+    }
 
   guint32 magic = g_data_input_stream_read_uint32 (stream, NULL, &tmp_error);
   if (tmp_error)
@@ -116,7 +120,7 @@ j2c_class_file_initable_init (GInitable *initable, GCancellable *cancellable, GE
       g_propagate_error (error, tmp_error);
       return FALSE;
     }
-  J2C_CLASS_FILE (self)->name = g_strdup (j2c_compilation_unit_name (unit));
+  J2C_CLASS_FILE (self)->name = j2c_compilation_unit_name (unit);
   g_object_unref (unit);
 
   return TRUE;
@@ -142,18 +146,22 @@ j2c_class_file_get_file_type (J2cIndexedFile *self)
 static GDataInputStream *
 j2c_class_file_read (J2cIndexedFile *self, GError **error)
 {
-    g_return_val_if_fail (NULL != self, NULL);
-    J2cReadable *readable = j2c_indexed_file_get_readable (self);
-    GInputStream *in = j2c_readable_read (readable, error);
-    g_return_val_if_fail (NULL != in, NULL);
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+  g_return_val_if_fail (NULL != self, NULL);
+  J2cReadable *readable = j2c_indexed_file_get_readable (self);
+  GError *tmp_error = NULL;
+  GInputStream *in = j2c_readable_read (readable, &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      return NULL;
+    }
 
-    GDataInputStream *datain = g_data_input_stream_new (in);
-    g_object_unref (in);
-    g_object_unref (readable);
+  GDataInputStream *datain = g_data_input_stream_new (in);
+  g_object_unref (in);
+  g_object_unref (readable);
 
-    g_return_val_if_fail (NULL != datain, NULL);
-
-    g_data_input_stream_set_byte_order (datain, G_DATA_STREAM_BYTE_ORDER_BIG_ENDIAN);
-    return datain;
+  g_data_input_stream_set_byte_order (datain, G_DATA_STREAM_BYTE_ORDER_BIG_ENDIAN);
+  return datain;
 }
 
