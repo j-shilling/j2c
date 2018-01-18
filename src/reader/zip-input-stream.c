@@ -1,6 +1,5 @@
 #include <j2c/zip-input-stream.h>
-
-#include <zip.h>
+#include <j2c/zip.h>
 
 #include <glib/gprintf.h>
 
@@ -12,8 +11,8 @@ struct _J2cZipInputStream
 {
   GInputStream parent_instance;
 
-  J2cJarFile *jar;
-  zip_file_t *file;
+  J2cZip *zip;
+  J2cZipFile *zfile;
 };
 
 G_DEFINE_TYPE(J2cZipInputStream, j2c_zip_input_stream, G_TYPE_INPUT_STREAM)
@@ -42,17 +41,22 @@ j2c_zip_input_stream_close_fn (GInputStream *stream, GCancellable *cancellable,
  */
 
 J2cZipInputStream *
-j2c_zip_input_stream_open (J2cJarFile *jar, guint64 index, GError **error)
+j2c_zip_input_stream_open (J2cZip *zip, guint64 index, GError **error)
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-  g_return_val_if_fail (jar != NULL, NULL);
+  g_return_val_if_fail (zip != NULL, NULL);
 
-  zip_t *zip = j2c_jar_file_open (jar, error);
-  zip_file_t *zfile = zip_fopen_index (zip, index, ZIP_FL_UNCHANGED);
+  GError *tmp_error = NULL;
+  J2cZipFile *zfile = j2c_zip_file_open (zip, index, &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      return NULL;
+    }
 
   J2cZipInputStream *ret = g_object_new (J2C_TYPE_ZIP_INPUT_STREAM, NULL);
-  ret->jar = g_object_ref (jar);
-  ret->file = zfile;
+  ret->zip = g_object_ref (zip);
+  ret->zfile = zfile;
 
   return ret;
 }
@@ -84,17 +88,12 @@ j2c_zip_input_stream_dispose (GObject *object)
 {
   J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (object);
 
-  if (self->file)
-    {
-      //zip_fclose (self->file);
-      self->file = NULL;
-    }
+  if (self->zip)
+    g_clear_object (&self->zip);
+  if (self->zfile)
+    g_clear_object (&self->zfile);
 
-  if (self->jar)
-    {
-      j2c_jar_file_close (self->jar, NULL);
-      g_clear_object (&self->jar);
-    }
+  G_OBJECT_CLASS (j2c_zip_input_stream_parent_class)->dispose (object);
 }
 
 /****
@@ -111,24 +110,7 @@ j2c_zip_input_stream_read_fn (GInputStream *stream, void *buffer, gsize count,
 
   J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (stream);
 
-  zip_int64_t ret = zip_fread (self->file, buffer, count);
-  if (ret != count)
-    {
-      if (self->file)
-	{
-	  zip_error_t *zer = zip_file_get_error (self->file);
-	  j2c_zip_input_stream_set_error (zer, NULL, error);
-	}
-      else
-	{
-	  g_set_error (error,
-		       J2C_ZIP_ERROR,
-		       J2C_ZIP_CLOSE_ERROR,
-		       "This stream is closed.");
-	}
-    }
-
-  return (gssize) ret;
+  return j2c_zip_file_read (self->zfile, buffer, count, error);
 }
 static gssize
 j2c_zip_input_stream_skip (GInputStream *stream, gsize count,
@@ -162,59 +144,10 @@ j2c_zip_input_stream_close_fn (GInputStream *stream, GCancellable *cancellable,
 {
   g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
   g_return_val_if_fail (stream != NULL, FALSE);
+
   J2cZipInputStream *self = J2C_ZIP_INPUT_STREAM (stream);
-
-  if (self->file)
-    {
-      self->file = NULL;
-    }
-
-  if (self->jar)
-    {
-      j2c_jar_file_close (self->jar, error);
-      g_clear_object (&self->jar);
-    }
-
-  return TRUE;
-}
-
-/****
- * PUBLIC METHODS
- */
-
-gboolean
-j2c_zip_input_stream_set_error (zip_error_t *zer, gchar *path, GError **error)
-{
-  g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-  g_return_val_if_fail(NULL != zer, FALSE);
-
-  if (zip_error_code_zip (zer) == J2C_ZIP_OK)
-    return FALSE;
-
-  gchar *preamble = path ? g_strdup_printf ("%s: ", path) : g_strdup ("");
-  const gchar *msg = zip_error_strerror (zer);
-
-  g_set_error (error,
-	       J2C_ZIP_ERROR,
-	       zip_error_code_zip (zer), "%s%s", preamble, msg);
-
-  g_free (preamble);
-
-  return TRUE;
-}
-
-gboolean
-j2c_zip_input_stream_set_error_from_code (gint zer, gchar *path, GError **error)
-{
-  g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
-  g_return_val_if_fail(zer != ZIP_ER_OK, FALSE);
-
-  zip_error_t *ze = g_malloc (sizeof(zip_error_t));
-  zip_error_init_with_code (ze, zer);
-
-  gboolean ret = j2c_zip_input_stream_set_error (ze, NULL, error);
-
-  zip_error_fini (ze);
-
-  return ret;
+  if (self->zfile)
+    return j2c_zip_file_close (self->zfile, error);
+  else
+    return TRUE;
 }

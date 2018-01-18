@@ -55,7 +55,7 @@ j2c_readable_list_expand_jars (gpointer data, gpointer user_data)
     }
   else
     {
-      J2cReadable **contents = j2c_jar_file_expand (jar);
+      J2cReadable **contents = j2c_jar_file_expand (jar, NULL);
       for (J2cReadable **cur = contents; *cur != NULL; cur ++)
 	g_thread_pool_push (list.insert, *cur, NULL);
 

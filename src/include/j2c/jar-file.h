@@ -6,7 +6,6 @@
 #include <glib-object.h>
 
 #include <j2c/readable.h>
-#include <zip.h>
 
 G_BEGIN_DECLS
 
@@ -21,10 +20,7 @@ typedef enum
 G_DECLARE_FINAL_TYPE (J2cJarFile, j2c_jar_file, J2C, JAR_FILE, GObject);
 
 J2cJarFile *j2c_jar_file_new (GFile *file, GError **error);
-J2cReadable **j2c_jar_file_expand (J2cJarFile *self);
-gboolean j2c_jar_file_close (J2cJarFile *self, GError **error);
-zip_t *j2c_jar_file_open (J2cJarFile *self, GError **error);
-
+J2cReadable **j2c_jar_file_expand (J2cJarFile *self, GError **error);
 
 G_END_DECLS
 

@@ -1,5 +1,6 @@
 #include <j2c/jar-member.h>
 #include <j2c/zip-input-stream.h>
+#include <j2c/jar-file-priv.h>
 
 struct _J2cJarMember
 {
@@ -19,8 +20,27 @@ G_DEFINE_TYPE_WITH_CODE (J2cJarMember, j2c_jar_member, G_TYPE_OBJECT,
 static GInputStream *
 j2c_jar_member_read (J2cReadable *self, GError **error)
 {
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   J2cJarMember *jar = J2C_JAR_MEMBER (self);
-  return G_INPUT_STREAM(j2c_zip_input_stream_open (jar->source, jar->index, error));
+  g_return_val_if_fail (jar->source != NULL, NULL);
+
+  GError *tmp_error = NULL;
+  J2cZip *zip = j2c_jar_file_open (jar->source, &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      return NULL;
+    }
+
+  J2cZipInputStream *ret = j2c_zip_input_stream_open (zip, jar->index, &tmp_error);
+  if (tmp_error)
+    {
+      g_propagate_error (error, tmp_error);
+      return NULL;
+    }
+  
+  g_object_unref (zip);
+  return G_INPUT_STREAM (ret);
 }
 
 const gchar *
