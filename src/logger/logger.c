@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -12,15 +13,23 @@ struct _Logger
   J2cLoggerLevel level;
   GFile *file;
   GMutex *mutex;
+  GThreadPool *pool;
 };
 
-static struct _Logger logger = { J2C_LOGGER_LEVEL_WARNING, NULL };
+static struct _Logger logger = { J2C_LOGGER_LEVEL_WARNING, NULL, NULL, NULL };
 
 struct _Level
 {
   gchar *preamble;
   gboolean use_stderr;
 };
+
+typedef struct
+{
+  FILE *out;
+  gchar *text;
+} J2cWriteArgs;
+
 
 static struct _Level levels_table[J2C_LOGGER_LEVEL_N_LEVELS] =
 {
@@ -33,33 +42,8 @@ static struct _Level levels_table[J2C_LOGGER_LEVEL_N_LEVELS] =
     { "[FATAL]:   ", TRUE  }
 };
 
-void
-j2c_logger_set_level (J2cLoggerLevel const level)
-{
-  logger.level = level;
-}
-
-void
-j2c_logger_set_file (GFile *file)
-{
-  if (logger.file)
-    g_object_unref (logger.file);
-
-  logger.file = file;
-
-  gchar *path = g_file_get_path (logger.file);
-  j2c_logger_fine ("Logging to file \'%s\'", path);
-  g_free (path);
-}
-
-typedef struct
-{
-  FILE *out;
-  gchar *text;
-} J2cWriteArgs;
-
-static gpointer
-j2c_logger_write (gpointer data)
+static void
+j2c_logger_write (gpointer data, gpointer user_data)
 {
   J2cWriteArgs *args = data;
   g_mutex_lock (logger.mutex);
@@ -97,12 +81,28 @@ j2c_logger_write (gpointer data)
   g_mutex_unlock (logger.mutex);
   g_free (args->text);
   g_free (args);
-
-  return NULL;
 }
 
-void
-j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...)
+static void
+j2c_logger_exit (void)
+{
+  if (logger.pool)
+    {
+      g_thread_pool_free (logger.pool, FALSE, TRUE);
+      logger.pool = NULL;
+    }
+  if (logger.mutex)
+    {
+      g_mutex_clear (logger.mutex);
+      g_free (logger.mutex);
+      logger.mutex = NULL;
+    }
+  if (logger.file)
+    g_clear_object (&logger.file);
+}
+
+static void
+j2c_logger_init (void)
 {
   if (logger.mutex == NULL)
     {
@@ -110,6 +110,40 @@ j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...)
       g_mutex_init (logger.mutex);
     }
 
+  if (logger.pool == NULL)
+    {
+      logger.pool = g_thread_pool_new (j2c_logger_write,
+				       NULL,
+				       1,
+				       FALSE,
+				       NULL);
+    }
+  atexit (j2c_logger_exit);
+}
+
+void
+j2c_logger_set_level (J2cLoggerLevel const level)
+{
+  logger.level = level;
+}
+
+void
+j2c_logger_set_file (GFile *file)
+{
+  if (logger.file)
+    g_object_unref (logger.file);
+
+  logger.file = file;
+
+  gchar *path = g_file_get_path (logger.file);
+  j2c_logger_fine ("Logging to file \'%s\'", path);
+  g_free (path);
+}
+
+void
+j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...)
+{
+  j2c_logger_init();
   if (level < logger.level)
     return;
 
@@ -133,59 +167,56 @@ j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...)
   write_args->text = text;
   write_args->out = out;
 
-  GThread *thread = g_thread_new ("j2c-logger-write", j2c_logger_write, write_args);
+  g_thread_pool_push (logger.pool, write_args, NULL);
 }
 
-static gpointer
-j2c_logger_write_heading (gpointer data)
-{
-  static const guint line_length = 64;
-  gchar const *const heading = data;
-
-  g_mutex_lock (logger.mutex);
-  g_printf ("\n");
-  g_printf ("\n");
-  for (int i = 0; i < line_length; i ++)
-    g_printf ("*");
-  g_printf ("\n*  ");
-
-  static const guint max = 58;
-  gchar *text = (gchar *)heading;
-  gunichar ch = g_utf8_get_char (text);
-  guint i = 0;
-
-  while (i < max)
-    {
-      if (ch != '\0')
-        g_printf ("%c", g_unichar_toupper (ch));
-      else
-        g_printf (" ");
-      i++;
-
-      if (ch != '\0')
-        {
-          text = g_utf8_next_char (text);
-          ch = g_utf8_get_char (text);
-        }
-    }
-
-  g_printf ("  *\n");
-  for (int i = 0; i < line_length; i ++)
-    g_printf ("*");
-  g_printf ("\n");
-  g_printf ("\n");
-  g_mutex_unlock (logger.mutex);
-
-  return NULL;
-}
 void
 j2c_logger_heading (gchar const *const heading)
 {
-  if (logger.mutex == NULL)
+  static const gint line_length = 64;
+  j2c_logger_init();
+
+  gchar *text = g_malloc0 ( 2 * (3 + line_length) /* upper and lower lines */
+			+        strlen (heading) + 100);
+  gint index = 0;
+  text[index++] = '\n';
+  text[index++] = '\n';
+  for (int i = 0; i < line_length; i ++)
+    text[index++] = '*';
+  text[index++] = '\n';
+
+  text[index++] = '*';
+  text[index++] = ' ';
+
+  gint max = line_length - 4;
+  gchar *cur = (gchar *)heading;
+  guint i = 0;
+
+  gint chs = 0;
+  while (*cur != '\0' && chs < max)
     {
-      logger.mutex = g_malloc (sizeof (GMutex));
-      g_mutex_init (logger.mutex);
+
+      gunichar ch = g_unichar_toupper (g_utf8_get_char(cur));
+      index += g_unichar_to_utf8 (ch, text + index);
+      cur = g_utf8_next_char (cur);
+
+      chs ++;
     }
 
-  GThread *thread = g_thread_new ("j2c-logger-write", j2c_logger_write_heading, (gpointer) heading);
+  for (int i = 0; i < (max - chs); i ++)
+    text[index++] = ' ';
+
+  text[index++] = ' ';
+  text[index++] = '*';
+  text[index++] = '\n';
+  for (int i = 0; i < line_length; i ++)
+    text[index++] = '*';
+  text[index++] = '\n';
+  text[index++] = '\n';
+ 
+  J2cWriteArgs *args = g_malloc (sizeof (J2cWriteArgs));
+  args->text = text;
+  args->out = stdout;
+
+  g_thread_pool_push (logger.pool, args, NULL);
 }
