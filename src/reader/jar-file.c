@@ -63,6 +63,7 @@ j2c_jar_file_new (GFile *file, GError **error)
 	{
 	  g_propagate_error (error, tmp_error);
 	}
+      return NULL;
     }
 
   J2cJarFile *ret = g_object_new (J2C_TYPE_JAR_FILE, NULL);

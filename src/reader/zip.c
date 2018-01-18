@@ -312,7 +312,6 @@ j2c_zip_file_read (J2cZipFile *self, void *buffer, gsize size, GError **error)
 
   g_mutex_lock (zip->mutex);
   zip_file_t *file = g_datalist_id_get_data (&zip->open_zip_files, self->key);
-  g_mutex_unlock (zip->mutex);
 
   if (!file)
     {
@@ -329,6 +328,7 @@ j2c_zip_file_read (J2cZipFile *self, void *buffer, gsize size, GError **error)
       zip_error_t *zer = zip_file_get_error (file);
       j2c_zip_set_error (zer, error);
     }
+  g_mutex_unlock (zip->mutex);
 
   return ret;
 }

@@ -112,6 +112,7 @@ j2c_zip_input_stream_read_fn (GInputStream *stream, void *buffer, gsize count,
 
   return j2c_zip_file_read (self->zfile, buffer, count, error);
 }
+
 static gssize
 j2c_zip_input_stream_skip (GInputStream *stream, gsize count,
 			   GCancellable *cancellable, GError **error)
