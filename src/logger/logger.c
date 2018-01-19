@@ -9,6 +9,17 @@
 #include <j2c/logger.h>
 #include <j2c/options.h>
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_TEXT_BOLD    "\x1b[1m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
+static const gint line_length = 72;
+
 struct _Logger
 {
   J2cLoggerLevel level;
@@ -28,19 +39,20 @@ struct _Level
 typedef struct
 {
   FILE *out;
+  gchar *preamble;
   gchar *text;
 } J2cWriteArgs;
 
 
 static struct _Level levels_table[J2C_LOGGER_LEVEL_N_LEVELS] =
 {
-    { "[FINEST]:  ", FALSE },
-    { "[FINER]:   ", FALSE },
-    { "[FINE]:    ", FALSE },
-    { "[INFO]:    ", FALSE },
-    { "[WARNING]: ", TRUE  },
-    { "[SEVERE]:  ", TRUE  },
-    { "[FATAL]:   ", TRUE  }
+    { ANSI_TEXT_BOLD ANSI_COLOR_BLUE "[" ANSI_COLOR_GREEN "FINEST" ANSI_COLOR_BLUE "]:  " ANSI_COLOR_RESET, FALSE },
+    { ANSI_TEXT_BOLD ANSI_COLOR_BLUE "[" ANSI_COLOR_GREEN "FINER" ANSI_COLOR_BLUE "]:   " ANSI_COLOR_RESET, FALSE },
+    { ANSI_TEXT_BOLD ANSI_COLOR_BLUE "[" ANSI_COLOR_GREEN "FINE" ANSI_COLOR_BLUE "]:    " ANSI_COLOR_RESET, FALSE },
+    { ANSI_TEXT_BOLD ANSI_COLOR_BLUE "[" ANSI_COLOR_GREEN "INFO" ANSI_COLOR_BLUE "]:    " ANSI_COLOR_RESET, FALSE },
+    { ANSI_TEXT_BOLD ANSI_COLOR_RED "[" ANSI_COLOR_YELLOW "WARNING" ANSI_COLOR_RED "]: " ANSI_COLOR_RESET, TRUE  },
+    { ANSI_TEXT_BOLD ANSI_COLOR_RED "[SEVERE]:  " ANSI_COLOR_RESET, TRUE  },
+    { ANSI_TEXT_BOLD ANSI_COLOR_RED "[FATAL]:   " ANSI_COLOR_RESET, TRUE  }
 };
 
 static void
@@ -49,7 +61,10 @@ j2c_logger_write (gpointer data, gpointer user_data)
   J2cWriteArgs *args = data;
   g_mutex_lock (logger.mutex);
 
+  if (args->preamble);
+    g_fprintf (args->out, "%s", args->preamble);
   g_fprintf (args->out, "%s", args->text);
+
   if (logger.file)
     {
       GError *error = NULL;
@@ -77,7 +92,6 @@ j2c_logger_write (gpointer data, gpointer user_data)
         }
 
     }
-
 
   g_mutex_unlock (logger.mutex);
   g_free (args->text);
@@ -131,7 +145,12 @@ j2c_logger_init (void)
 }
 
 void
-j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...)
+j2c_logger_log (J2cLoggerLevel const level,
+		gchar const *const file,
+		gint const line,
+		gchar const *const func,
+		gchar const *const __fmt,
+		...)
 {
   j2c_logger_init();
   if (level < logger.level)
@@ -147,13 +166,14 @@ j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...)
 
   gboolean needs_new_line = ('\n' !=
 			     msg[strlen(msg) - 1]);
-  gchar *text = g_strdup_printf (needs_new_line ? "%s%s\n" : "%s%s",
-				 levels_table[level].preamble,
+  gchar *text = g_strdup_printf (needs_new_line ? "%s:%s:%d %s\n" : "%s:%s:%d %s",
+				 file, func, line,
 				 msg);
 
   g_free (msg);
 
   J2cWriteArgs *write_args = g_malloc (sizeof (J2cWriteArgs));
+  write_args->preamble = levels_table[level].preamble;
   write_args->text = text;
   write_args->out = out;
 
@@ -163,7 +183,6 @@ j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...)
 void
 j2c_logger_heading (gchar const *const heading)
 {
-  static const gint line_length = 64;
   j2c_logger_init();
 
   gchar *text = g_malloc0 ( 2 * (3 + line_length) /* upper and lower lines */
@@ -206,6 +225,7 @@ j2c_logger_heading (gchar const *const heading)
  
   J2cWriteArgs *args = g_malloc (sizeof (J2cWriteArgs));
   args->text = text;
+  args->preamble = NULL;
   args->out = stdout;
 
   g_thread_pool_push (logger.pool, args, NULL);

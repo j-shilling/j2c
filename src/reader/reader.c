@@ -153,7 +153,7 @@ j2c_readable_list_expand_dirs (gpointer data, gpointer user_data)
 		  g_file_info_get_attribute_uint32 (child_info, G_FILE_ATTRIBUTE_STANDARD_TYPE))
 		{
 		  gchar *child_path = g_file_get_path (child);
-		  j2c_logger_fine ("Ignoring subdirectory %s", child_path);
+		  j2c_readable_list_expand_dirs (g_object_ref (child), user_data);
 		  g_free (child_path);
 		  continue;
 		}
@@ -172,12 +172,11 @@ j2c_readable_list_expand_dirs (gpointer data, gpointer user_data)
 	}
       while (child && child_info);
 
-      g_object_unref (file);
       g_object_unref (direnum);
     }
 
-  g_object_unref (info);
   g_object_unref (file);
+  g_object_unref (info);
 }
 
 J2cReadableList *

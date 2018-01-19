@@ -30,24 +30,6 @@ main (gint argc, gchar *argv[])
 
   j2c_parse_options (argc, argv);
 
-  GFile **cp_files = j2c_options_class_path_files ();
-  j2c_logger_finer ("In class path:");
-  for (GFile **cur = cp_files; cur && *cur; cur++)
-    {
-      gchar *name = g_file_get_path (*cur);
-      j2c_logger_finer ("\t%s", name);
-      g_free (name);
-    }
-
-  GFile **t_files = j2c_options_target_files ();
-  j2c_logger_finer ("In target path:");
-  for (GFile **cur = t_files; cur && *cur; cur++)
-    {
-      gchar *name = g_file_get_path (*cur);
-      j2c_logger_finer ("\t%s", name);
-      g_free (name);
-    }
-
   /****
     INDEXING FILES
    ****/

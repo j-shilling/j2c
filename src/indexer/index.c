@@ -5,6 +5,7 @@
 #include <j2c/options.h>
 #include <j2c/readable.h>
 #include <j2c/reader.h>
+#include <j2c/jre.h>
 
 #include <glib.h>
 #include <stdlib.h>
@@ -85,6 +86,11 @@ j2c_index_init (void)
 				     j2c_index_value_destroy);
   index.target_types = j2c_object_array_new ();
   g_mutex_init (&index.m);
+
+
+  GFile *jre = j2c_jre_get_lib_dir ();
+  j2c_index_read (jre, FALSE);
+  g_object_unref (jre);
 
   GFile **files = j2c_options_class_path_files ();
   for (GFile **cur = files; cur && *cur; cur++)
