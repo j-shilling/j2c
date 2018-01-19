@@ -1,2 +1,3 @@
 SUBDIRS = jre \
-          reader
+          reader \
+	  indexer
