@@ -4,8 +4,10 @@
 #include <glib.h>
 #include <gio/gio.h>
 
-void j2c_readable_list_init (gint max_threads);
-GSList *j2c_readable_list_finish (void);
-void j2c_readable_list_add (GFile *file);
+typedef struct _J2cReadableList J2cReadableList;
+
+J2cReadableList * j2c_readable_list_new (void);
+GSList *j2c_readable_list_finish (J2cReadableList *list);
+void j2c_readable_list_add (J2cReadableList *list, GFile *file);
 
 #endif /* __READER_H__ */

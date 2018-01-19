@@ -28,7 +28,4 @@ typedef enum
 void j2c_logger_log (J2cLoggerLevel const level, gchar const *const __fmt, ...);
 void j2c_logger_heading (gchar const *const heading);
 
-void j2c_logger_set_level (J2cLoggerLevel const level);
-void j2c_logger_set_file (GFile *file);
-
 #endif /* __LOGGER_H__ */

@@ -24,6 +24,7 @@ PKG_CHECK_MODULES([ZIP], [libzip])
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+		 src/options/Makefile
 		 src/jre/Makefile
 		 src/util/Makefile
                  src/logger/Makefile

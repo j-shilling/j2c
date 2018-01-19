@@ -2,13 +2,17 @@
 #include <j2c/logger.h>
 #include <j2c/jar-file.h>
 #include <j2c/object-array.h>
+#include <j2c/options.h>
+#include <j2c/readable.h>
+#include <j2c/reader.h>
 
 #include <glib.h>
 #include <stdlib.h>
 
 static struct 
 {
-  GThreadPool *pool;
+  GThreadPool *insert_item;
+  GThreadPool *read_item;
 
   J2cObjectArray *target_types;
   GTree *types;
@@ -18,7 +22,8 @@ static struct
 
   GMutex m;
 } index = {
-    .pool = NULL,
+    .insert_item = NULL,
+    .read_item = NULL,
     .types = NULL,
     .resources = NULL,
     .main = NULL
@@ -26,7 +31,7 @@ static struct
 
 typedef struct
 {
-  J2cIndexedFile *indexed_file;
+  gpointer file;
   gboolean target;
 } J2cInsertData;
 
@@ -36,8 +41,8 @@ typedef struct
   GWeakRef weak_ref;
 } J2cIndexValue;
 
-static gboolean j2c_index_free_nodes (gpointer key, gpointer data, gpointer user_data);
-static gint     j2c_index_compare_nodes (gconstpointer a, gconstpointer b);
+static void j2c_index_read (GFile *file, gboolean const target);
+static void j2c_index_insert (J2cReadable *readable, gboolean const target);
 
 /* GTree functions */
 static gint j2c_index_key_compare (gconstpointer a, gconstpointer b, gpointer user_data);
@@ -46,80 +51,64 @@ static void j2c_index_value_destroy (gpointer data);
 
 /* GThreadPool functions */
 static void j2c_index_insert_item (gpointer data, gpointer user_data);
+static void j2c_index_read_item (gpointer data, gpointer user_data);
 
 void
-j2c_index_init (gint max_threads)
+j2c_index_init (void)
 {
-  g_return_if_fail (index.pool == NULL);
+
+  j2c_logger_heading ("indexing files");
+
+  g_return_if_fail (index.insert_item == NULL);
+  g_return_if_fail (index.read_item == NULL);
   g_return_if_fail (index.types == NULL);
   g_return_if_fail (index.resources == NULL);
   g_return_if_fail (index.target_types == NULL);
 
-  GError *error = NULL;
-  index.pool = g_thread_pool_new (j2c_index_insert_item,
+  index.insert_item = g_thread_pool_new (j2c_index_insert_item,
 				  NULL,
-				  max_threads > 0 ? max_threads : -1,
-				  TRUE,
-				  &error);
-  if (error)
-    {
-      j2c_logger_fatal ("%s", error->message);
-      exit (EXIT_FAILURE);
-    }
-
+				  j2c_options_max_threads(),
+				  FALSE,
+				  NULL);
+  index.read_item = g_thread_pool_new (j2c_index_read_item,
+				  NULL,
+				  j2c_options_max_threads(),
+				  FALSE,
+				  NULL);
   index.types = g_tree_new_full (j2c_index_key_compare,
 				 NULL,
 				 j2c_index_key_destroy,
 				 j2c_index_value_destroy);
-
   index.resources = g_tree_new_full (j2c_index_key_compare,
 		  		     NULL,
 				     j2c_index_key_destroy,
 				     j2c_index_value_destroy);
-
   index.target_types = j2c_object_array_new ();
-
   g_mutex_init (&index.m);
-}
 
-void
-j2c_index_insert (J2cReadable *readable, gboolean const target)
-{
-  g_return_if_fail (NULL != index.pool);
-  g_return_if_fail (NULL != readable);
-
-  GError *error = NULL;
-  J2cIndexedFile *item = j2c_indexed_file_new (readable, &error);
-  if (item)
+  GFile **files = j2c_options_class_path_files ();
+  for (GFile **cur = files; cur && *cur; cur++)
     {
-      J2cInsertData *data = g_malloc (sizeof (J2cInsertData));
-      data->indexed_file = g_object_ref(item);
-      data->target = target;
-      g_object_unref (item);
-
-      g_thread_pool_push (index.pool, data, &error);
-      if (error)
-	{
-	  j2c_logger_fatal ("%s", error->message);
-	  exit (EXIT_FAILURE);
-	}
+      j2c_index_read (*cur, FALSE);
+      g_object_unref (*cur);
     }
-  else
+  g_free (files);
+
+  files = j2c_options_target_files ();
+  for (GFile **cur = files; cur && *cur; cur++)
     {
-      j2c_logger_warning ("Could not create indexed file from %s: %s.",
-			  j2c_readable_name (readable),
-			  error->message);
+      j2c_index_read (*cur, TRUE);
+      g_object_unref (*cur);
     }
+  g_free (files);
+
+  g_thread_pool_free (index.read_item, FALSE, TRUE);
+  index.read_item = NULL;
+  g_thread_pool_free (index.insert_item, FALSE, TRUE);
+  index.insert_item = NULL;
 }
 
-void
-j2c_index_lock (void)
-{
-  g_return_if_fail (index.pool != NULL);
 
-  g_thread_pool_free (index.pool, FALSE, TRUE);
-  index.pool = NULL;
-}
 
 J2cIndexedFile *
 j2c_index_get_main (void)
@@ -160,12 +149,29 @@ j2c_index_get_compilation_unit (gchar *java_name)
 
 /* GThreadPool functions */
 static void
+j2c_index_read_item (gpointer data, gpointer user_data)
+{
+  g_return_if_fail (NULL != data);
+  J2cInsertData *insert_data = data;
+  GFile *file = insert_data->file;
+  gboolean const target = insert_data->target;
+  g_free (insert_data);
+
+  J2cReadableList *list = j2c_readable_list_new();
+  j2c_readable_list_add (list, file);
+  GSList *readables = j2c_readable_list_finish (list);
+
+  for (GSList *cur = readables; cur; cur = cur->next)
+    j2c_index_insert (J2C_READABLE(cur->data), target);
+}
+
+static void
 j2c_index_insert_item (gpointer data, gpointer user_data)
 {
   g_return_if_fail (NULL != data);
 
   J2cInsertData *insert_data = data;
-  J2cIndexedFile *item = insert_data->indexed_file;
+  J2cIndexedFile *item = insert_data->file;
   gboolean const target = insert_data->target;
   g_free (insert_data);
 
@@ -241,5 +247,43 @@ j2c_index_value_destroy (gpointer data)
       g_object_unref (value->indexed_file);
       g_weak_ref_clear (&value->weak_ref);
       g_free (value);
+    }
+}
+
+static void
+j2c_index_read (GFile *file, gboolean const target)
+{
+  g_return_if_fail (NULL != index.read_item);
+  g_return_if_fail (NULL != file);
+
+  J2cInsertData *data = g_malloc (sizeof (J2cInsertData));
+  data->file = g_object_ref (file);
+  data->target = target;
+
+  g_thread_pool_push (index.read_item, data, NULL);
+}
+
+static void
+j2c_index_insert (J2cReadable *readable, gboolean const target)
+{
+  g_return_if_fail (NULL != index.insert_item);
+  g_return_if_fail (NULL != readable);
+
+  GError *error = NULL;
+  J2cIndexedFile *item = j2c_indexed_file_new (readable, &error);
+  if (item)
+    {
+      J2cInsertData *data = g_malloc (sizeof (J2cInsertData));
+      data->file = g_object_ref(item);
+      data->target = target;
+      g_object_unref (item);
+
+      g_thread_pool_push (index.insert_item, data, NULL);
+    }
+  else
+    {
+      j2c_logger_warning ("Could not create indexed file from %s: %s.",
+			  j2c_readable_name (readable),
+			  error->message);
     }
 }

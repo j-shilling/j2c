@@ -1,4 +1,5 @@
 SUBDIRS = logger \
+          options \
           jre \
           util \
 	  reader \
@@ -15,9 +16,10 @@ j2c_CFLAGS = $(CFLAGS) $(GLIB_CFLAGS) $(GIO_CFLAGS) $(GOBJECT_CFLAGS) \
 				
 j2c_LDADD = -lm $(GLIB_LIBS) $(GIO_LIBS) $(GOBJECT_LIBS) $(ZIP_LIBS) \
 			$(srcdir)/jre/libjre.a \
+			$(srcdir)/options/liboptions.a \
 			$(srcdir)/logger/liblogger.a \
-			$(srcdir)/reader/libreader.a \
 			$(srcdir)/indexer/libindexer.a \
+			$(srcdir)/reader/libreader.a \
 			$(srcdir)/compilation_unit/libcompilationunit.a \
 			$(srcdir)/compilation_unit/class_file/libclassfile.a \
 			$(srcdir)/compilation_unit/libcompilationunit.a \

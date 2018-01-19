@@ -7,6 +7,7 @@
 #include <glib/gprintf.h>
 
 #include <j2c/logger.h>
+#include <j2c/options.h>
 
 struct _Logger
 {
@@ -58,7 +59,7 @@ j2c_logger_write (gpointer data, gpointer user_data)
 						     &error);
       if (!ostream)
         {
-          j2c_logger_set_file (NULL);
+	  g_clear_object (&logger.file);
           j2c_logger_warning ("Could not log to file: %s", error->message);
           g_error_free (error);
         }
@@ -114,30 +115,19 @@ j2c_logger_init (void)
     {
       logger.pool = g_thread_pool_new (j2c_logger_write,
 				       NULL,
-				       1,
+				       j2c_options_max_threads(),
 				       FALSE,
 				       NULL);
+   }
+
+  if (logger.file == NULL)
+    {
+      logger.file = j2c_options_log_file ();
+      logger.level = j2c_options_logger_level();
+      atexit (j2c_logger_exit);
+
+      j2c_logger_finest ("Logging initialized");
     }
-  atexit (j2c_logger_exit);
-}
-
-void
-j2c_logger_set_level (J2cLoggerLevel const level)
-{
-  logger.level = level;
-}
-
-void
-j2c_logger_set_file (GFile *file)
-{
-  if (logger.file)
-    g_object_unref (logger.file);
-
-  logger.file = file;
-
-  gchar *path = g_file_get_path (logger.file);
-  j2c_logger_fine ("Logging to file \'%s\'", path);
-  g_free (path);
 }
 
 void
