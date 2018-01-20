@@ -3,6 +3,7 @@ noinst_LIBRARIES = libclassfile.a
 libclassfile_a_SOURCES = 	modified-utf8.c \
 				compilation-unit-class.c \
 				constant-pool.c \
+				constant-pool-item.c \
 				attributes.c \
 				attributes-class-file.c \
 				attributes-field-info.c \
