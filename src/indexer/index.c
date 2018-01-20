@@ -44,6 +44,7 @@ typedef struct
 
 static void j2c_index_read (GFile *file, gboolean const target);
 static void j2c_index_insert (J2cReadable *readable, gboolean const target);
+static void j2c_index_exit (void);
 
 /* GTree functions */
 static gint j2c_index_key_compare (gconstpointer a, gconstpointer b, gpointer user_data);
@@ -112,6 +113,8 @@ j2c_index_init (void)
   index.read_item = NULL;
   g_thread_pool_free (index.insert_item, FALSE, TRUE);
   index.insert_item = NULL;
+
+  atexit (j2c_index_exit);
 }
 
 
@@ -292,4 +295,19 @@ j2c_index_insert (J2cReadable *readable, gboolean const target)
 			  j2c_readable_name (readable),
 			  error->message);
     }
+}
+
+static void
+j2c_index_exit (void)
+{
+  if (index.insert_item)
+    g_thread_pool_free (index.insert_item, TRUE, FALSE);
+  if (index.read_item)
+    g_thread_pool_free (index.read_item, TRUE, FALSE);
+  if (index.types)
+    g_tree_destroy (index.types);
+  if (index.resources)
+    g_tree_destroy (index.resources);
+  if (index.main)
+    g_object_unref (index.main);
 }
