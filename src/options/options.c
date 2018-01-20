@@ -3,6 +3,7 @@
 #include <config.h>
 
 #include <stdlib.h>
+#include <locale.h>
 
 #define LOG_FILENAME_DEFAULT	  "./" PACKAGE ".log"
 #define OUTPUT_FILENAME_DEFAULT	  "./target"
@@ -106,6 +107,7 @@ j2c_options_target_files (void)
 void
 j2c_parse_options (gint argc, gchar *argv[])
 {
+  setlocale (LC_ALL, "");
   GOptionContext *context = g_option_context_new ("");
   g_option_context_set_summary (context, "Genderate C+GObject project from java.");
   g_option_context_add_main_entries (context, entries, NULL);
