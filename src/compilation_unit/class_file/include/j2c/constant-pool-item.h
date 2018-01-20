@@ -6,6 +6,15 @@
 
 G_BEGIN_DECLS
 
+typedef enum
+{
+  J2C_CONSTANT_POOL_MEM_ERROR,
+  J2C_CONSTANT_POOL_INVALID_TAG_ERROR,
+  J2C_CONSTANT_POOL_INVALID_FLOAT_ERROR
+} J2cConstantPoolItemError;
+
+#define J2C_CONSTANT_POOL_ITEM_ERROR	g_quark_from_static_string ("j2c-constant-pool-item")
+
 #define J2C_TYPE_CONSTANT_POOL_ITEM_TAG	  j2c_constant_pool_item_tag_get_type ()
 #define J2C_TYPE_CONSTANT_POOL_ITEM j2c_constant_pool_item_get_type ()
 #define J2C_TYPE_CLASS_INFO j2c_class_info_get_type ()
@@ -22,7 +31,6 @@ G_BEGIN_DECLS
 #define J2C_TYPE_METHOD_HANDLE_INFO j2c_method_handle_info_get_type ()
 #define J2C_TYPE_METHOD_TYPE_INFO j2c_method_type_info_get_type ()
 #define J2C_TYPE_INVOKE_DYNAMIC_INFO j2c_invoke_dynamic_info_get_type ()
-
 
 typedef enum
 {
