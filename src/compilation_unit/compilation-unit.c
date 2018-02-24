@@ -47,7 +47,7 @@ j2c_compilation_unit_get_method (J2cCompilationUnit *self, gchar *java_name, gch
   return iface->get_method (self, java_name, descriptor);
 }
 
-gchar *
+const gchar *
 j2c_compilation_unit_superclass_name (J2cCompilationUnit *self)
 {
   g_return_val_if_fail (self != NULL, NULL);
@@ -57,7 +57,7 @@ j2c_compilation_unit_superclass_name (J2cCompilationUnit *self)
   return iface->superclass_name (self);
 }
 
-gchar **
+const gchar **
 j2c_compilation_unit_interfaces (J2cCompilationUnit *self)
 {
   g_return_val_if_fail (self != NULL, NULL);

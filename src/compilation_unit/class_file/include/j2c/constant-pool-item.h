@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <gio/gio.h>
 
 G_BEGIN_DECLS
 
@@ -74,7 +75,28 @@ G_DECLARE_FINAL_TYPE (J2cMethodTypeInfo, j2c_method_type_info, J2C, METHOD_TYPE_
 G_DECLARE_FINAL_TYPE (J2cInvokeDynamicInfo, j2c_invoke_dynamic_info, J2C, INVOKE_DYNAMIC_INFO, J2cConstantPoolItem);
 
 GType j2c_constant_pool_item_tag_get_type (void);
-gint  j2c_constant_pool_item_size (J2cConstantPoolItemTag const tag);
+J2cConstantPoolItem *j2c_constant_pool_item_new (GDataInputStream *in, GError **error);
+
+guint16 j2c_class_info_name_index (J2cClassInfo *self);
+guint16 j2c_fieldref_info_class_index (J2cFieldrefInfo *self);
+guint16 j2c_fieldref_info_name_and_type_index (J2cFieldrefInfo *self);
+guint16 j2c_methodref_info_class_index (J2cMethodrefInfo *self);
+guint16 j2c_methodref_info_name_and_type_index (J2cMethodrefInfo *self);
+guint16 j2c_interface_methodref_info_class_index (J2cInterfaceMethodrefInfo *self);
+guint16 j2c_interface_methodref_info_name_and_type_index (J2cInterfaceMethodrefInfo *self);
+guint16 j2c_string_info_string_index (J2cStringInfo *self);
+gint32 j2c_integer_info_value (J2cIntegerInfo *self);
+gfloat j2c_float_info_value (J2cFloatInfo *self);
+gint64 j2c_long_info_value (J2cLongInfo *self);
+gdouble j2c_double_info_value (J2cDoubleInfo *self);
+guint16 j2c_name_and_type_info_name_index (J2cNameAndTypeInfo *self);
+guint16 j2c_name_and_type_info_descriptor_index (J2cNameAndTypeInfo *self);
+const gchar *j2c_utf8_info_string (J2cUtf8Info *self);
+guint8 j2c_method_handle_info_reference_kind (J2cMethodHandleInfo *self);
+guint16 j2c_method_handle_info_reference_index (J2cMethodHandleInfo *self);
+guint16 j2c_method_type_info_descriptor_index (J2cMethodTypeInfo *self);
+guint16 j2c_invoke_dynamic_info_bootstrap_method_attr_index (J2cInvokeDynamicInfo *self);
+guint16 j2c_invoke_dynamic_info_name_and_type_idnex (J2cInvokeDynamicInfo *self);
 
 G_END_DECLS
 

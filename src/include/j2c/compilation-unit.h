@@ -20,14 +20,14 @@ struct _J2cCompilationUnitInterface
   gchar *(*name) (J2cCompilationUnit *self);
   J2cObjectArray *(*get_type_dependencies) (J2cCompilationUnit *self);
   J2cMethod *(*get_method) (J2cCompilationUnit *self, gchar *java_name, gchar *descriptor);
-  gchar *(*superclass_name) (J2cCompilationUnit *self);
-  gchar **(*interfaces) (J2cCompilationUnit *self);
+  const gchar *(*superclass_name) (J2cCompilationUnit *self);
+  const gchar **(*interfaces) (J2cCompilationUnit *self);
 };
 
 J2cCompilationUnit *j2c_compilation_unit_new (J2cIndexedFile *file, GError **error);
 gchar *j2c_compilation_unit_name (J2cCompilationUnit *self);
-gchar *j2c_compilation_unit_superclass_name (J2cCompilationUnit *self);
-gchar **j2c_compilation_unit_interfaces (J2cCompilationUnit *self);
+const gchar *j2c_compilation_unit_superclass_name (J2cCompilationUnit *self);
+const gchar **j2c_compilation_unit_interfaces (J2cCompilationUnit *self);
 J2cObjectArray *j2c_compilation_unit_get_type_dependencies (J2cCompilationUnit *self);
 J2cMethod *j2c_compilation_unit_get_method (J2cCompilationUnit *self, gchar *java_name, gchar *descriptor);
 

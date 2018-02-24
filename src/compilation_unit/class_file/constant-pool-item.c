@@ -144,20 +144,20 @@ G_DEFINE_TYPE (J2cInvokeDynamicInfo, j2c_invoke_dynamic_info, J2C_TYPE_CONSTANT_
 
 static void j2c_utf8_info_dispose (GObject *object);
 
-static J2cClassInfo *j2c_class_info_new (guint8 *bytes);
-static J2cFieldrefInfo *j2c_fieldref_info_new (guint8 *bytes);
-static J2cMethodrefInfo *j2c_methodref_info_new (guint8 *bytes);
-static J2cInterfaceMethodrefInfo *j2c_interface_methodref_info_new (guint8 *bytes);
-static J2cStringInfo *j2c_string_info_new (guint8 *bytes);
-static J2cIntegerInfo *j2c_integer_info_new (guint8 *bytes);
-static J2cFloatInfo *j2c_float_info_new (guint8 *bytes, GError **error);
-static J2cLongInfo *j2c_long_info_new (guint8 *bytes);
-static J2cDoubleInfo *j2c_double_info_new (guint8 *bytes, GError **error);
-static J2cNameAndTypeInfo *j2c_name_and_type_info_new (guint8 *bytes);
-static J2cUtf8Info *j2c_utf8_info_new (guint8 *bytes, GError **error);
-static J2cMethodHandleInfo *j2c_method_handle_info_new (guint8 *bytes);
-static J2cMethodTypeInfo *j2c_method_type_info_new (guint8 *bytes);
-static J2cInvokeDynamicInfo *j2c_invoke_dynamic_info_new (guint8 *bytes);
+static J2cClassInfo *j2c_class_info_new (guint16 name_index);
+static J2cFieldrefInfo *j2c_fieldref_info_new (guint16 class_index, guint16 name_and_type_index);
+static J2cMethodrefInfo *j2c_methodref_info_new (guint16 class_index, guint16 name_and_type_index);
+static J2cInterfaceMethodrefInfo *j2c_interface_methodref_info_new (guint16 class_index, guint16 name_and_type_index);
+static J2cStringInfo *j2c_string_info_new (guint16 string_index);
+static J2cIntegerInfo *j2c_integer_info_new (gint32 value);
+static J2cFloatInfo *j2c_float_info_new (guint32 ival, GError **error);
+static J2cLongInfo *j2c_long_info_new (guint32 high_bytes, guint32 low_bytes);
+static J2cDoubleInfo *j2c_double_info_new (guint32 high_bytes, guint32 low_bytes, GError **error);
+static J2cNameAndTypeInfo *j2c_name_and_type_info_new (guint16 name_index, guint16 descriptor_index);
+static J2cUtf8Info *j2c_utf8_info_new (guint16 len, guint8 *bytes, GError **error);
+static J2cMethodHandleInfo *j2c_method_handle_info_new (guint8 reference_kind, guint16 reference_index);
+static J2cMethodTypeInfo *j2c_method_type_info_new (guint16 descriptor_index);
+static J2cInvokeDynamicInfo *j2c_invoke_dynamic_info_new (guint16 bootstrap_method_attr_index, guint16 name_and_type_index);
 
 GType
 j2c_constant_pool_item_tag_get_type (void)
@@ -168,94 +168,150 @@ j2c_constant_pool_item_tag_get_type (void)
   return type;
 }
 
-gint
-j2c_constant_pool_item_size (J2cConstantPoolItemTag const tag)
-{
-  switch (tag)
-    {
-    case CONSTANT_Class:              return  2;
-    case CONSTANT_Fieldref:           return  4;
-    case CONSTANT_Methodref:          return  4;
-    case CONSTANT_InterfaceMethodref: return  4;
-    case CONSTANT_String:             return  2;
-    case CONSTANT_Integer:            return  4;
-    case CONSTANT_Float:              return  4;
-    case CONSTANT_Long:               return  8;
-    case CONSTANT_Double:             return  8;
-    case CONSTANT_NameAndType:        return  4;
-    case CONSTANT_Utf8:               return -1;
-    case CONSTANT_MethodHandle:       return  4;
-    case CONSTANT_MethodType:         return  2;
-    case CONSTANT_InvokeDynamic:      return  4;
-    default:                          return -1;
-    }
-}
-
 J2cConstantPoolItem *
-j2c_constant_pool_item_new (guint8 *bytes, gsize size, GError **error)
+j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 {
-  g_return_val_if_fail (bytes != NULL, NULL);
+  g_return_val_if_fail (in != NULL, NULL);
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-
-  if (size == 0)
-    {
-      g_set_error (error,
-		   J2C_CONSTANT_POOL_ITEM_ERROR,
-		   J2C_CONSTANT_POOL_MEM_ERROR,
-		   "Cannot create constant pool item from array size 0");
-      return NULL;
-    }
-  if (bytes[0] == CONSTANT_Utf8)
-    {
-      if (size < 3 || size < (3 + ((bytes[1] << 8) | bytes[2])))
-	{
-	  g_set_error (error,
-		       J2C_CONSTANT_POOL_ITEM_ERROR,
-		       J2C_CONSTANT_POOL_MEM_ERROR,
-		       "Cannot read utf8 string from array of size %lu",
-		       size);
-	  return NULL;
-	}
-    }
-  else
-    {
-      gint req = j2c_constant_pool_item_size (bytes[0]);
-      if (size < (req + 1))
-	{
-	  g_set_error (error,
-		       J2C_CONSTANT_POOL_ITEM_ERROR,
-		       J2C_CONSTANT_POOL_MEM_ERROR,
-		       "Cannot read %d bytes from array of size %lu",
-		       req, size);
-	  return NULL;
-	}
-    }
 
   GError *tmp_error = NULL;
   gpointer ret;
 
-  switch (bytes[0])
+  guint8 tag = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+  if (tmp_error)
     {
-    case CONSTANT_Class:              ret = j2c_class_info_new (bytes + 1); break;
-    case CONSTANT_Fieldref:           ret = j2c_fieldref_info_new (bytes + 1); break;
-    case CONSTANT_Methodref:          ret = j2c_methodref_info_new (bytes + 1); break;
-    case CONSTANT_InterfaceMethodref: ret = j2c_interface_methodref_info_new (bytes + 1); break;
-    case CONSTANT_String:             ret = j2c_string_info_new (bytes + 1); break;
-    case CONSTANT_Integer:            ret = j2c_integer_info_new (bytes + 1); break;
-    case CONSTANT_Float:              ret = j2c_float_info_new (bytes + 1, &tmp_error); break;
-    case CONSTANT_Long:               ret = j2c_long_info_new (bytes + 1); break;
-    case CONSTANT_Double:             ret = j2c_double_info_new (bytes + 1, &tmp_error); break;
-    case CONSTANT_NameAndType:        ret = j2c_name_and_type_info_new (bytes + 1); break;
-    case CONSTANT_Utf8:               ret = j2c_utf8_info_new (bytes + 1, &tmp_error); break;
-    case CONSTANT_MethodHandle:       ret = j2c_method_handle_info_new (bytes + 1); break;
-    case CONSTANT_MethodType:         ret = j2c_method_type_info_new (bytes + 1); break;
-    case CONSTANT_InvokeDynamic:      ret = j2c_invoke_dynamic_info_new (bytes + 1); break;
-    default:                          g_set_error (error,
-						   J2C_CONSTANT_POOL_ITEM_ERROR,
-						   J2C_CONSTANT_POOL_INVALID_TAG_ERROR,
-						   "%u is not a valid constant pool tag",
-						   bytes[0]);
-				      return NULL;
+      g_propagate_error (error, tmp_error);
+      return NULL;
+    }
+
+  switch (tag)
+    {
+      guint16 name_index, class_index, name_and_type_index,
+	      string_index, descriptor_index, len, reference_index, bootstrap_method_attr_index;
+      gint32 value;
+      guint32 ival, high_bytes, low_bytes;
+      guint8 reference_kind, *bytes;
+
+    case CONSTANT_Class:
+	{
+	  name_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_class_info_new (name_index);
+	}
+    case CONSTANT_Fieldref:
+	{
+	  class_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    name_and_type_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_fieldref_info_new (class_index, name_and_type_index);
+	}
+    case CONSTANT_Methodref:
+	{
+	  class_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    name_and_type_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_methodref_info_new (class_index, name_and_type_index);
+	}
+    case CONSTANT_InterfaceMethodref:
+	{
+	  class_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    name_and_type_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_interface_methodref_info_new (class_index, name_and_type_index);
+	}
+    case CONSTANT_String:
+	{
+	  string_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_string_info_new (string_index);
+	}
+    case CONSTANT_Integer:
+	{
+	  value = g_data_input_stream_read_int32 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_integer_info_new (value);
+	}
+    case CONSTANT_Float:
+	{
+	  ival = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_float_info_new (ival, &tmp_error);
+	}
+    case CONSTANT_Long:
+	{
+	  high_bytes = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    low_bytes = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_long_info_new (high_bytes, low_bytes);
+	}
+    case CONSTANT_Double:
+        {
+	  high_bytes = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    low_bytes = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_double_info_new (high_bytes, low_bytes, &tmp_error);
+	}
+    case CONSTANT_NameAndType:
+	{
+	  name_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    descriptor_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_name_and_type_info_new (name_index, descriptor_index);
+	}
+    case CONSTANT_Utf8:
+	{
+	  len = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    {
+	      bytes = g_malloc (len);
+	      g_input_stream_read (G_INPUT_STREAM (in),
+				   bytes,
+				   len,
+				   NULL,
+				   &tmp_error);
+	      if (!tmp_error)
+		ret = j2c_utf8_info_new (len, bytes, &tmp_error);
+
+	      g_free (bytes);
+	    }
+	}
+    case CONSTANT_MethodHandle:
+	{
+	  reference_kind = g_data_input_stream_read_byte (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    reference_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_method_handle_info_new (reference_kind, reference_index);
+	}
+    case CONSTANT_MethodType:
+	{
+          descriptor_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_method_type_info_new (descriptor_index);
+	}
+    case CONSTANT_InvokeDynamic:
+	{
+	  bootstrap_method_attr_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    name_and_type_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
+	  if (!tmp_error)
+	    ret = j2c_invoke_dynamic_info_new (bootstrap_method_attr_index, name_and_type_index);
+	}
+    default:
+	{
+          g_set_error (error,
+	               J2C_CONSTANT_POOL_ITEM_ERROR,
+	               J2C_CONSTANT_POOL_INVALID_TAG_ERROR,
+	               "%u is not a valid constant pool tag",
+	               bytes[0]);
+	  return NULL;
+	}
     }
 
   if (tmp_error)
@@ -462,62 +518,61 @@ j2c_utf8_info_dispose (GObject *object)
 }
 
 static J2cClassInfo *
-j2c_class_info_new (guint8 *bytes)
+j2c_class_info_new (guint16 name_index)
 {
   J2cClassInfo *ret = g_object_new (J2C_TYPE_CLASS_INFO, NULL);
-  ret->name_index = (bytes[0] << 8) | bytes[1];
+  ret->name_index = name_index;
   return ret;
 }
 
 static J2cFieldrefInfo *
-j2c_fieldref_info_new (guint8 *bytes)
+j2c_fieldref_info_new (guint16 class_index, guint16 name_and_type_index)
 {
   J2cFieldrefInfo *ret = g_object_new (J2C_TYPE_FIELDREF_INFO, NULL);
-  ret->class_index = (bytes[0] << 8) | bytes[1];
-  ret->name_and_type_index = (bytes[2] << 8) | bytes[3];
+  ret->class_index = class_index;
+  ret->name_and_type_index = name_and_type_index;
   return ret;
 }
 
 static J2cMethodrefInfo *
-j2c_methodref_info_new (guint8 *bytes)
+j2c_methodref_info_new (guint16 class_index, guint16 name_and_type_index)
 {
   J2cMethodrefInfo *ret = g_object_new (J2C_TYPE_METHODREF_INFO, NULL);
-  ret->class_index = (bytes[0] << 8) | bytes[1];
-  ret->name_and_type_index = (bytes[2] << 8) | bytes[3];
+  ret->class_index = class_index;
+  ret->name_and_type_index = name_and_type_index;
   return ret;
 }
 
 static J2cInterfaceMethodrefInfo *
-j2c_interface_methodref_info_new (guint8 *bytes)
+j2c_interface_methodref_info_new (guint16 class_index, guint16 name_and_type_index)
 {
   J2cInterfaceMethodrefInfo *ret = g_object_new (J2C_TYPE_INTERFACE_METHODREF_INFO, NULL);
-  ret->class_index = (bytes[0] << 8) | bytes[1];
-  ret->name_and_type_index = (bytes[2] << 8) | bytes[3];
+  ret->class_index = class_index;
+  ret->name_and_type_index = name_and_type_index;
   return ret;
 }
 
 static J2cStringInfo *
-j2c_string_info_new (guint8 *bytes)
+j2c_string_info_new (guint16 string_index)
 {
   J2cStringInfo *ret = g_object_new (J2C_TYPE_STRING_INFO, NULL);
-  ret->string_index = (bytes[0] << 8) | bytes[1];
+  ret->string_index = string_index;
   return ret;
 }
 
 static J2cIntegerInfo *
-j2c_integer_info_new (guint8 *bytes)
+j2c_integer_info_new (gint32 value)
 {
   J2cIntegerInfo *ret = g_object_new (J2C_TYPE_INTEGER_INFO, NULL);
-  ret->value = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+  ret->value = value;
   return ret;
 }
 
 static J2cFloatInfo *
-j2c_float_info_new (guint8 *bytes, GError **error)
+j2c_float_info_new (guint32 ival, GError **error)
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
-  guint32 ival = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
   gfloat fval;
   if (ival == 0x7f800000)
     {
@@ -572,23 +627,17 @@ j2c_float_info_new (guint8 *bytes, GError **error)
 }
 
 static J2cLongInfo *
-j2c_long_info_new (guint8 *bytes)
+j2c_long_info_new (guint32 high_bytes, guint32 low_bytes)
 {
-  guint32 high_bytes = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-  guint32 low_bytes = (bytes[4] << 24) | (bytes[5] << 16) | (bytes[6] << 8) | bytes[8];
-
   J2cLongInfo *ret = g_object_new (J2C_TYPE_LONG_INFO, NULL);
   ret->value = ((gint64) high_bytes << 32) | low_bytes;
   return ret;
 }
 
 static J2cDoubleInfo *
-j2c_double_info_new (guint8 *bytes, GError **error)
+j2c_double_info_new (guint32 high_bytes, guint32 low_bytes, GError **error)
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
-
-  guint32 high_bytes = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-  guint32 low_bytes = (bytes[4] << 24) | (bytes[5] << 16) | (bytes[6] << 8) | bytes[8];
 
   gint64 bits = ((gint64) high_bytes << 32) + low_bytes;
   gdouble value;
@@ -644,20 +693,20 @@ j2c_double_info_new (guint8 *bytes, GError **error)
 }
 
 static J2cNameAndTypeInfo *
-j2c_name_and_type_info_new (guint8 *bytes)
+j2c_name_and_type_info_new (guint16 name_index, guint16 descriptor_index)
 {
   J2cNameAndTypeInfo *ret = g_object_new (J2C_TYPE_NAME_AND_TYPE_INFO, NULL);
-  ret->name_index = (bytes[0] << 8) | bytes[1];
-  ret->descriptor_index = (bytes[2] << 8) | bytes[3];
+  ret->name_index = name_index;
+  ret->descriptor_index = descriptor_index;
   return ret;
 }
 
-static J2cUtf8Info *j2c_utf8_info_new (guint8 *bytes, GError **error)
+static J2cUtf8Info *
+j2c_utf8_info_new (guint16 len, guint8 *bytes, GError **error)
 {
   g_return_val_if_fail (error == NULL || *error == NULL, NULL);
   GError *tmp_error = NULL;
 
-  guint16 len = (bytes[0] << 8) | bytes[1];
   gchar *str;
 
   if (len == 0)
@@ -666,7 +715,7 @@ static J2cUtf8Info *j2c_utf8_info_new (guint8 *bytes, GError **error)
     }
   else
     {
-      str = j2c_modified_utf8_to_standard (bytes + 2, len, &tmp_error);
+      str = j2c_modified_utf8_to_standard (bytes, len, &tmp_error);
       if (tmp_error)
 	{
 	  g_propagate_error (error, tmp_error);
@@ -680,27 +729,167 @@ static J2cUtf8Info *j2c_utf8_info_new (guint8 *bytes, GError **error)
 }
 
 static J2cMethodHandleInfo *
-j2c_method_handle_info_new (guint8 *bytes)
+j2c_method_handle_info_new (guint8 reference_kind, guint16 reference_index)
 {
   J2cMethodHandleInfo *ret = g_object_new (J2C_TYPE_METHOD_HANDLE_INFO, NULL);
-  ret->reference_kind = bytes[0];
-  ret->reference_index = (bytes[1] << 8) | bytes[2];
+  ret->reference_kind = reference_kind;
+  ret->reference_index = reference_index;
   return ret;
 }
 
 static J2cMethodTypeInfo *
-j2c_method_type_info_new (guint8 *bytes)
+j2c_method_type_info_new (guint16 descriptor_index)
 {
   J2cMethodTypeInfo *ret = g_object_new (J2C_TYPE_METHOD_TYPE_INFO, NULL);
-  ret->descriptor_index = (bytes[0] << 8) | bytes[1];
+  ret->descriptor_index = descriptor_index;
   return ret;
 }
 
 static J2cInvokeDynamicInfo *
-j2c_invoke_dynamic_info_new (guint8 *bytes)
+j2c_invoke_dynamic_info_new (guint16 bootstrap_method_attr_index, guint16 name_and_type_index)
 {
   J2cInvokeDynamicInfo *ret = g_object_new (J2C_TYPE_INVOKE_DYNAMIC_INFO, NULL);
-  ret->bootstrap_method_attr_index = (bytes[0] << 8) | bytes[1];
-  ret->name_and_type_index = (bytes[2] << 8) | bytes[3];
+  ret->bootstrap_method_attr_index = bootstrap_method_attr_index;
+  ret->name_and_type_index = name_and_type_index;
   return ret;
+}
+
+guint16
+j2c_class_info_name_index (J2cClassInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->name_index;
+}
+
+guint16
+j2c_fieldref_info_class_index (J2cFieldrefInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->class_index;
+}
+
+guint16
+j2c_fieldref_info_name_and_type_index (J2cFieldrefInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->name_and_type_index;
+}
+
+guint16
+j2c_methodref_info_class_index (J2cMethodrefInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->class_index;
+}
+
+guint16
+j2c_methodref_info_name_and_type_index (J2cMethodrefInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->name_and_type_index;
+}
+
+guint16
+j2c_interface_methodref_info_class_index (J2cInterfaceMethodrefInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->class_index;
+}
+
+guint16
+j2c_interface_methodref_info_name_and_type_index (J2cInterfaceMethodrefInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->name_and_type_index;
+}
+
+guint16
+j2c_string_info_string_index (J2cStringInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->string_index;
+}
+
+gint32
+j2c_integer_info_value (J2cIntegerInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->value;
+}
+
+gfloat
+j2c_float_info_value (J2cFloatInfo *self)
+{
+  g_return_val_if_fail (self, 0.0);
+  return self->value;
+}
+
+gint64
+j2c_long_info_value (J2cLongInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->value;
+}
+
+gdouble
+j2c_double_info_value (J2cDoubleInfo *self)
+{
+  g_return_val_if_fail (self, 0.0);
+  return self->value;
+}
+
+guint16
+j2c_name_and_type_info_name_index (J2cNameAndTypeInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->name_index;
+}
+
+guint16
+j2c_name_and_type_info_descriptor_index (J2cNameAndTypeInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->descriptor_index;
+}
+
+const gchar *
+j2c_utf8_info_string (J2cUtf8Info *self)
+{
+  g_return_val_if_fail (self, NULL);
+  return self->value;
+}
+
+guint8
+j2c_method_handle_info_reference_kind (J2cMethodHandleInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->reference_kind;
+}
+
+guint16
+j2c_method_handle_info_reference_index (J2cMethodHandleInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->reference_index;
+}
+
+guint16
+j2c_method_type_info_descriptor_index (J2cMethodTypeInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->descriptor_index;
+}
+
+guint16
+j2c_invoke_dynamic_info_bootstrap_method_attr_index (J2cInvokeDynamicInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->bootstrap_method_attr_index;
+}
+
+guint16
+j2c_invoke_dynamic_info_name_and_type_idnex (J2cInvokeDynamicInfo *self)
+{
+  g_return_val_if_fail (self, 0);
+  return self->name_and_type_index;
 }
