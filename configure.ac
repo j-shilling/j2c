@@ -36,5 +36,6 @@ AC_CONFIG_FILES([Makefile
 		 tests/Makefile
 		 tests/jre/Makefile
 		 tests/reader/Makefile
-		 tests/indexer/Makefile])
+		 tests/compilation_unit/Makefile
+		 tests/compilation_unit/class_file/Makefile])
 AC_OUTPUT

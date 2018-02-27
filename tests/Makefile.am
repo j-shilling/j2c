@@ -1,3 +1,3 @@
 SUBDIRS = jre \
           reader \
-	  indexer
+	  compilation_unit
