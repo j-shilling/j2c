@@ -15,14 +15,14 @@ struct _J2cMethodClass
 {
   GObjectClass parent_class;
 
-  gchar *(*get_descriptor) (J2cMethod *self);
-  gchar *(*get_java_name) (J2cMethod *self);
+  const gchar *(*get_descriptor) (J2cMethod *self);
+  const gchar *(*get_java_name) (J2cMethod *self);
   guint16 (*get_access_flags) (J2cMethod *self);
   gchar **(*get_reference_types) (J2cMethod *self, gchar **param_types, GError **error);
 };
 
-gchar *j2c_method_get_descriptor (J2cMethod *self);
-gchar *j2c_method_get_java_name (J2cMethod *self);
+const gchar *j2c_method_get_descriptor (J2cMethod *self);
+const gchar *j2c_method_get_java_name (J2cMethod *self);
 guint16 j2c_method_get_access_flags (J2cMethod *self);
 gchar **j2c_method_get_reference_types (J2cMethod *self, gchar **param_types, GError **error);
 

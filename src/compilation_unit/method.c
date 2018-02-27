@@ -85,7 +85,7 @@ j2c_method_init (J2cMethod *self)
   priv->type = NULL;
 }
 
-gchar *
+const gchar *
 j2c_method_get_descriptor (J2cMethod *self)
 {
   g_return_val_if_fail (self != NULL, NULL);
@@ -95,7 +95,7 @@ j2c_method_get_descriptor (J2cMethod *self)
   return klass->get_descriptor (self);
 }
 
-gchar *
+const gchar *
 j2c_method_get_java_name (J2cMethod *self)
 {
   g_return_val_if_fail (self != NULL, NULL);

@@ -198,6 +198,7 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	  if (!tmp_error)
 	    ret = j2c_class_info_new (name_index);
 	}
+      break;
     case CONSTANT_Fieldref:
 	{
 	  class_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
@@ -206,6 +207,7 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	  if (!tmp_error)
 	    ret = j2c_fieldref_info_new (class_index, name_and_type_index);
 	}
+      break;
     case CONSTANT_Methodref:
 	{
 	  class_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
@@ -214,6 +216,7 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	  if (!tmp_error)
 	    ret = j2c_methodref_info_new (class_index, name_and_type_index);
 	}
+      break;
     case CONSTANT_InterfaceMethodref:
 	{
 	  class_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
@@ -222,24 +225,28 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	  if (!tmp_error)
 	    ret = j2c_interface_methodref_info_new (class_index, name_and_type_index);
 	}
+      break;
     case CONSTANT_String:
 	{
 	  string_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
 	  if (!tmp_error)
 	    ret = j2c_string_info_new (string_index);
 	}
+      break;
     case CONSTANT_Integer:
 	{
 	  value = g_data_input_stream_read_int32 (in, NULL, &tmp_error);
 	  if (!tmp_error)
 	    ret = j2c_integer_info_new (value);
 	}
+      break;
     case CONSTANT_Float:
 	{
 	  ival = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
 	  if (!tmp_error)
 	    ret = j2c_float_info_new (ival, &tmp_error);
 	}
+      break;
     case CONSTANT_Long:
 	{
 	  high_bytes = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
@@ -248,6 +255,7 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	  if (!tmp_error)
 	    ret = j2c_long_info_new (high_bytes, low_bytes);
 	}
+      break;
     case CONSTANT_Double:
         {
 	  high_bytes = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
@@ -256,6 +264,7 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	  if (!tmp_error)
 	    ret = j2c_double_info_new (high_bytes, low_bytes, &tmp_error);
 	}
+      break;
     case CONSTANT_NameAndType:
 	{
 	  name_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
@@ -264,23 +273,28 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	  if (!tmp_error)
 	    ret = j2c_name_and_type_info_new (name_index, descriptor_index);
 	}
+      break;
     case CONSTANT_Utf8:
 	{
 	  len = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
 	  if (!tmp_error)
 	    {
 	      bytes = g_malloc (len);
-	      g_input_stream_read (G_INPUT_STREAM (in),
-				   bytes,
-				   len,
-				   NULL,
-				   &tmp_error);
+
+	      if (len > 0)
+		g_input_stream_read (G_INPUT_STREAM (in),
+				     bytes,
+				     len,
+				     NULL,
+				     &tmp_error);
+
 	      if (!tmp_error)
 		ret = j2c_utf8_info_new (len, bytes, &tmp_error);
 
 	      g_free (bytes);
 	    }
 	}
+      break;
     case CONSTANT_MethodHandle:
 	{
 	  reference_kind = g_data_input_stream_read_byte (in, NULL, &tmp_error);
@@ -289,12 +303,14 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	  if (!tmp_error)
 	    ret = j2c_method_handle_info_new (reference_kind, reference_index);
 	}
+      break;
     case CONSTANT_MethodType:
 	{
           descriptor_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
 	  if (!tmp_error)
 	    ret = j2c_method_type_info_new (descriptor_index);
 	}
+      break;
     case CONSTANT_InvokeDynamic:
 	{
 	  bootstrap_method_attr_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
@@ -303,6 +319,7 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	  if (!tmp_error)
 	    ret = j2c_invoke_dynamic_info_new (bootstrap_method_attr_index, name_and_type_index);
 	}
+      break;
     default:
 	{
           g_set_error (error,
@@ -312,6 +329,7 @@ j2c_constant_pool_item_new (GDataInputStream *in, GError **error)
 	               bytes[0]);
 	  return NULL;
 	}
+      break;
     }
 
   if (tmp_error)

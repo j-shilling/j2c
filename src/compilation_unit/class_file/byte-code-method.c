@@ -3,6 +3,8 @@
 #include <j2c/attributes.h>
 #include <j2c/opcodes.h>
 #include <j2c/descriptors.h>
+#include <j2c/logger.h>
+#include <j2c/constant-pool-item.h>
 
 struct _J2cByteCodeMethod
 {
@@ -169,22 +171,50 @@ j2c_byte_code_method_dispose (GObject *object)
   G_OBJECT_CLASS (j2c_byte_code_method_parent_class)->dispose (object);
 }
 
-static gchar *
+static const gchar *
 j2c_byte_code_method_get_descriptor (J2cMethod *self)
 {
   g_return_val_if_fail (self != NULL, NULL);
 
-  return j2c_constant_pool_get_string (J2C_BYTE_CODE_METHOD(self)->constant_pool,
-    J2C_BYTE_CODE_METHOD(self)->descriptor_index, NULL);
+  GError *error = NULL;
+  J2cConstantPoolItem *item =
+    j2c_constant_pool_get (J2C_BYTE_CODE_METHOD (self)->constant_pool,
+			   J2C_BYTE_CODE_METHOD (self)->descriptor_index,
+			   &error);
+  if (error)
+    {
+      j2c_logger_warning ("%s", error->message);
+      g_error_free (error);
+      return NULL;
+    }
+
+  const gchar *ret = j2c_utf8_info_string (J2C_UTF8_INFO (item));
+  g_object_unref (item);
+
+  return ret;
 }
 
-static gchar *
+static const gchar *
 j2c_byte_code_method_get_java_name (J2cMethod *self)
 {
   g_return_val_if_fail (self != NULL, NULL);
 
-  return j2c_constant_pool_get_string (J2C_BYTE_CODE_METHOD(self)->constant_pool,
-    J2C_BYTE_CODE_METHOD(self)->name_index, NULL);
+  GError *error = NULL;
+  J2cConstantPoolItem *item =
+    j2c_constant_pool_get (J2C_BYTE_CODE_METHOD (self)->constant_pool,
+			   J2C_BYTE_CODE_METHOD (self)->name_index,
+			   &error);
+  if (error)
+    {
+      j2c_logger_warning ("%s", error->message);
+      g_error_free (error);
+      return NULL;
+    }
+
+  const gchar *ret = j2c_utf8_info_string (J2C_UTF8_INFO (item));
+  g_object_unref (item);
+
+  return ret;
 }
 
 static guint16
@@ -201,7 +231,7 @@ j2c_byte_code_method_get_reference_types (J2cMethod *self, gchar **param_types, 
   g_return_val_if_fail (self != NULL, NULL);
   g_return_val_if_fail (J2C_IS_BYTE_CODE_METHOD (self), NULL);
 
-  gchar *descriptor = j2c_method_get_descriptor (self);
+  const gchar *descriptor = j2c_method_get_descriptor (self);
 
   size_t len = 0;
   gchar **ret = g_malloc0 (sizeof (gchar *) * (len + 1));

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <signal.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -178,6 +179,10 @@ j2c_logger_log (J2cLoggerLevel const level,
   write_args->out = out;
 
   g_thread_pool_push (logger.pool, write_args, NULL);
+
+  if (level > J2C_LOGGER_LEVEL_INFO)
+    raise (SIGTRAP);
+
 }
 
 void

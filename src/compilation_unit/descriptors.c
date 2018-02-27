@@ -3,7 +3,7 @@
 #include <string.h>
 
 gboolean
-j2c_descriptor_is_reference_type (gchar *type_descriptor)
+j2c_descriptor_is_reference_type (const gchar *type_descriptor)
 {
   g_return_val_if_fail (type_descriptor != NULL, FALSE);
   g_return_val_if_fail (*type_descriptor != '\0', FALSE);
@@ -17,7 +17,7 @@ j2c_descriptor_is_reference_type (gchar *type_descriptor)
 }
 
 gchar *
-j2c_descriptor_get_reference_java_name (gchar *type_descriptor)
+j2c_descriptor_get_reference_java_name (const gchar *type_descriptor)
 {
   g_return_val_if_fail (type_descriptor != NULL, NULL);
   g_return_val_if_fail (*type_descriptor != '\0', NULL);
@@ -32,7 +32,7 @@ j2c_descriptor_get_reference_java_name (gchar *type_descriptor)
 }
 
 gboolean
-j2c_descriptor_is_array_type (gchar *type_descriptor)
+j2c_descriptor_is_array_type (const gchar *type_descriptor)
 {
   g_return_val_if_fail (type_descriptor != NULL, FALSE);
   g_return_val_if_fail (*type_descriptor != '\0', FALSE);
@@ -41,7 +41,7 @@ j2c_descriptor_is_array_type (gchar *type_descriptor)
 }
 
 gchar *
-j2c_descriptor_get_array_content_type (gchar *type_descriptor)
+j2c_descriptor_get_array_content_type (const gchar *type_descriptor)
 {
   g_return_val_if_fail (type_descriptor != NULL, NULL);
   g_return_val_if_fail (*type_descriptor != '\0', NULL);
@@ -54,7 +54,7 @@ j2c_descriptor_get_array_content_type (gchar *type_descriptor)
 }
 
 gboolean
-j2c_descriptor_is_fundamental_type (gchar *type_descriptor)
+j2c_descriptor_is_fundamental_type (const gchar *type_descriptor)
 {
   g_return_val_if_fail (type_descriptor != NULL, FALSE);
   g_return_val_if_fail (*type_descriptor != '\0', FALSE);
@@ -82,7 +82,7 @@ j2c_descriptor_get_fundamental_type (J2cFundamentalType const type)
 }
 
 gboolean
-j2c_descriptor_is_type_descriptor (gchar *str)
+j2c_descriptor_is_type_descriptor (const gchar *str)
 {
   g_return_val_if_fail (str != NULL, FALSE);
   g_return_val_if_fail (*str != '\0', FALSE);
@@ -100,8 +100,8 @@ j2c_descriptor_is_type_descriptor (gchar *str)
           || str[0] == (gchar) J2C_VOID;
 }
 
-J2cTypeDescriptor
-j2c_descriptor_get_next_type_descriptor (gchar *str)
+gchar *
+j2c_descriptor_get_next_type_descriptor (const gchar *str)
 {
   g_return_val_if_fail (str != NULL, NULL);
   g_return_val_if_fail (*str != '\0', NULL);
@@ -112,12 +112,12 @@ j2c_descriptor_get_next_type_descriptor (gchar *str)
       ret [0] = str[0];
       ret [1] = '\0';
 
-      return (J2cTypeDescriptor) ret;
+      return ret;
     }
 
   if (j2c_descriptor_is_array_type (str))
     {
-      J2cTypeDescriptor content_type = j2c_descriptor_get_next_type_descriptor (str + 1);
+      gchar *content_type = j2c_descriptor_get_next_type_descriptor (str + 1);
       if (!content_type)
         return NULL;
 
@@ -128,7 +128,7 @@ j2c_descriptor_get_next_type_descriptor (gchar *str)
       memcpy (ret + 1, content_type, len);
       g_free (content_type);
 
-      return (J2cTypeDescriptor) ret;
+      return ret;
     }
 
   if (j2c_descriptor_is_reference_type (str))
@@ -143,12 +143,12 @@ j2c_descriptor_get_next_type_descriptor (gchar *str)
       gchar *ret = g_malloc0 (i + 2);
       memcpy (ret, str, i + 1);
 
-      return (J2cTypeDescriptor) ret;
+      return ret;
     }
 }
 
-J2cTypeDescriptor
-j2c_descriptor_get_return_type (J2cMethodDescriptor descriptor)
+gchar *
+j2c_descriptor_get_return_type (const gchar *descriptor)
 {
   g_return_val_if_fail (descriptor && descriptor[0] == '(', NULL);
 
@@ -162,8 +162,8 @@ j2c_descriptor_get_return_type (J2cMethodDescriptor descriptor)
   return j2c_descriptor_get_next_type_descriptor (descriptor + i);
 }
 
-J2cTypeDescriptor *
-j2c_descriptor_get_params (J2cMethodDescriptor descriptor)
+gchar **
+j2c_descriptor_get_params (const gchar * descriptor)
 {
   g_return_val_if_fail (descriptor && descriptor[0] == '(', NULL);
 

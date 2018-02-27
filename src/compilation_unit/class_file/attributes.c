@@ -967,7 +967,7 @@ j2c_read_attribute (GType type, GDataInputStream *in, J2cConstantPool *cp, GErro
   g_return_val_if_fail (cp != NULL, NULL);
 
   GError *tmp_error = NULL;
-  gchar *name = NULL;
+  const gchar *name = NULL;
   gpointer ret = NULL;
   guint8 *data_buffer = NULL;
   GInputStream *memory_input_stream = NULL;
@@ -975,8 +975,10 @@ j2c_read_attribute (GType type, GDataInputStream *in, J2cConstantPool *cp, GErro
 
   guint16 name_index = g_data_input_stream_read_uint16 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
-  name = j2c_constant_pool_get_string (cp, name_index, &tmp_error);
+  J2cConstantPoolItem *item = j2c_constant_pool_get (cp, name_index, &tmp_error);
   if (tmp_error) goto error;
+  name = j2c_utf8_info_string (J2C_UTF8_INFO (item));
+  g_object_unref (item);
 
   guint32 length = g_data_input_stream_read_uint32 (in, NULL, &tmp_error);
   if (tmp_error) goto error;
@@ -1019,8 +1021,6 @@ j2c_read_attribute (GType type, GDataInputStream *in, J2cConstantPool *cp, GErro
 error:
   if (tmp_error)
     g_propagate_error (error, tmp_error);
-  if (name)
-    g_free (name);
   if (data_buffer)
     g_free (data_buffer);
   if (memory_input_stream)
