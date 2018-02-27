@@ -92,7 +92,7 @@ class ConstantPoolItem:
         return ret
 
     def attach (self, parent):
-        elmt = ET.SubElement (parent, str (self.index), { 'type':self.type })
+        elmt = ET.SubElement (parent, self.type, { 'index':str(self.index) })
         attrs = dir (self)
         attrs.remove ('index')
         attrs.remove ('type')
