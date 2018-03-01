@@ -105,7 +105,10 @@ class ConstantPoolItem:
 
         for attr in attrs:
             node = ET.SubElement (elmt, attr)
-            node.text = str (getattr (self, attr))
+            try:
+                node.text = str (getattr (self, attr))
+            except AttributeError:
+                raise AttributeError ("Element type", self.type, "at index", self.index,"does not have the expected attribute",attr)
 
         return elmt
 
@@ -143,7 +146,14 @@ class ParseThread (threading.Thread):
                 elmnt = item.attach (cp)
 
             except ValueError as e:
-                print ("[WARNING] in ", path, ": ", e)
+                print ("[WARNING] in", self.in_path, ":", e)
+                return
+            except AttributeError as e:
+                print ("[WARNING] in", self.in_path, ":", e)
+                return
+            except:
+                print ("[WARNING] unkown error")
+                return
 
         os.makedirs (os.path.dirname (self.out_path), exist_ok=True)
         tree.write (self.out_path)

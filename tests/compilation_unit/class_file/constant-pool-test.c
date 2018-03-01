@@ -357,7 +357,6 @@ test_constant_pool (gconstpointer user_data)
       goto error;
     }
 
-
   GBytes *bytes = g_memory_output_stream_steal_as_bytes (G_MEMORY_OUTPUT_STREAM(out));
 
   g_object_unref (out);
@@ -381,6 +380,22 @@ test_constant_pool (gconstpointer user_data)
   if (error)
     goto error;
 
+  if (pool->class_file_path)
+    {
+      GFile *file = g_file_new_for_path (pool->class_file_path);
+      GFileInputStream *fis = g_file_read (file, NULL, &error);
+      if (error) goto error;
+
+      GDataInputStream *din = g_data_input_stream_new (G_INPUT_STREAM (fis));
+      g_data_input_stream_set_byte_order (din, G_DATA_STREAM_BYTE_ORDER_BIG_ENDIAN);
+
+      g_input_stream_skip (G_INPUT_STREAM (din), 8, NULL, &error);
+      if (error) goto error;
+      J2cConstantPool *test = j2c_constant_pool_new (din, &error);
+      if (error) goto error;
+
+      g_object_unref (test);
+    }
   g_markup_parse_context_free (context);
 
 error:
