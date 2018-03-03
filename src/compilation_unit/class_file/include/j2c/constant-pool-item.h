@@ -96,7 +96,7 @@ guint8 j2c_method_handle_info_reference_kind (J2cMethodHandleInfo *self);
 guint16 j2c_method_handle_info_reference_index (J2cMethodHandleInfo *self);
 guint16 j2c_method_type_info_descriptor_index (J2cMethodTypeInfo *self);
 guint16 j2c_invoke_dynamic_info_bootstrap_method_attr_index (J2cInvokeDynamicInfo *self);
-guint16 j2c_invoke_dynamic_info_name_and_type_idnex (J2cInvokeDynamicInfo *self);
+guint16 j2c_invoke_dynamic_info_name_and_type_index (J2cInvokeDynamicInfo *self);
 
 G_END_DECLS
 

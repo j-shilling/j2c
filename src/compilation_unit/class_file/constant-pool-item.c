@@ -906,7 +906,7 @@ j2c_invoke_dynamic_info_bootstrap_method_attr_index (J2cInvokeDynamicInfo *self)
 }
 
 guint16
-j2c_invoke_dynamic_info_name_and_type_idnex (J2cInvokeDynamicInfo *self)
+j2c_invoke_dynamic_info_name_and_type_index (J2cInvokeDynamicInfo *self)
 {
   g_return_val_if_fail (self, 0);
   return self->name_and_type_index;
