@@ -1,15 +1,18 @@
 TESTS = constant_pool_test
 check_PROGRAMS = constant_pool_test
 
-BUILT_SOURCES = constant_pool_data
-CLEANFILES = constant_pool_data
+BUILT_SOURCES = datagen.jar test_data
+DISTCLEANFILES = datagen.jar
 
-constant_pool_data: Makefile
-	./constantpooldatagen.py
+datagen.jar: Makefile
+	cd ./datagen; mvn package
 
-clean-local:
-	-rm -rf constant_pool_data
-	-rm -rf rt.jar
+test_data: Makefile
+	java -jar datagen.jar ${srcdir}
+
+distclean-local:
+	-rm -rf test_data
+	-rm -rf rt
 
 constant_pool_test_SOURCES = constant-pool-test.c
 constant_pool_test_CFLAGS = $(GLIB_CFLAGS) $(GIO_CLFAGS) $(GOBJECT_CFLAGS) \
